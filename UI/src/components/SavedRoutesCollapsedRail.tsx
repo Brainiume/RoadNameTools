@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { panelActions } from "bindings";
 import { logUiEvent } from "diagnostics";
+import { useRoadSignsLocalization } from "localization";
 import { SavedRoute } from "types";
 import styles from "styles/panel.module.scss";
 
@@ -21,6 +22,7 @@ const RAIL_ROUTE_CHIP_GAP = 16;
 const MIN_VISIBLE_SHORTCUTS = 1;
 
 export function SavedRoutesCollapsedRail({ routes, selectedRouteId, onBack, onSelectRoute }: SavedRoutesCollapsedRailProps) {
+    const { t } = useRoadSignsLocalization();
     const railRef = useRef<HTMLElement | null>(null);
     const [visibleShortcutCount, setVisibleShortcutCount] = useState<number>(MIN_VISIBLE_SHORTCUTS);
     const shortcutRoutes = useMemo(() => buildShortcutRoutes(routes, selectedRouteId, visibleShortcutCount), [routes, selectedRouteId, visibleShortcutCount]);
@@ -61,12 +63,12 @@ export function SavedRoutesCollapsedRail({ routes, selectedRouteId, onBack, onSe
     }, [routes.length]);
 
     return (
-        <aside ref={railRef} className={styles.savedRail} aria-label="Saved routes quick switch rail">
+        <aside ref={railRef} className={styles.savedRail} aria-label={t("RoadSignsTools.UI[SavedRoutesRailAria]")}>
             <button
                 className={styles.savedRailAction}
                 type="button"
-                aria-label="Close panel"
-                title="Close the Road Signs Tools panel."
+                aria-label={t("RoadSignsTools.UI[ClosePanelAria]")}
+                title={t("RoadSignsTools.UI[ClosePanelTooltip]")}
                 onClick={() => {
                     logUiEvent("saved routes rail close clicked");
                     panelActions.cancel();
@@ -77,8 +79,8 @@ export function SavedRoutesCollapsedRail({ routes, selectedRouteId, onBack, onSe
             <button
                 className={styles.savedRailAction}
                 type="button"
-                aria-label="Back to saved routes list"
-                title="Return to the full saved routes list."
+                aria-label={t("RoadSignsTools.UI[BackToSavedRoutesAria]")}
+                title={t("RoadSignsTools.UI[BackToSavedRoutesTooltip]")}
                 onClick={() => {
                     logUiEvent("saved routes rail back clicked");
                     onBack();
@@ -94,13 +96,13 @@ export function SavedRoutesCollapsedRail({ routes, selectedRouteId, onBack, onSe
                         className={`${styles.savedRailRouteChip} ${route.id === selectedRouteId ? styles.isSelected : ""}`}
                         type="button"
                         aria-pressed={route.id === selectedRouteId}
-                        title={`Switch to saved route ${route.title || shortLabel(route)}.`}
+                        title={`${t("RoadSignsTools.UI[SwitchToSavedRouteTooltip]")} ${route.title || shortLabel(route, t)}.`}
                         onClick={() => {
                             logUiEvent("saved routes rail shortcut clicked", { routeId: route.id });
                             onSelectRoute(route.id);
                         }}
                     >
-                        {shortLabel(route)}
+                        {shortLabel(route, t)}
                     </button>
                 ))}
             </div>
@@ -109,8 +111,8 @@ export function SavedRoutesCollapsedRail({ routes, selectedRouteId, onBack, onSe
                 <button
                     className={`${styles.savedRailRouteChip} ${styles.savedRailOverflowChip}`}
                     type="button"
-                    aria-label="Show all saved routes"
-                    title="Return to the full list to view more saved routes."
+                    aria-label={t("RoadSignsTools.UI[ShowAllSavedRoutesAria]")}
+                    title={t("RoadSignsTools.UI[ShowAllSavedRoutesTooltip]")}
                     onClick={() => {
                         logUiEvent("saved routes rail overflow clicked");
                         onBack();
@@ -139,10 +141,10 @@ function buildShortcutRoutes(routes: SavedRoute[], selectedRouteId: number, visi
     return ordered.slice(0, Math.max(MIN_VISIBLE_SHORTCUTS, visibleShortcutCount));
 }
 
-function shortLabel(route: SavedRoute): string {
-    const source = (route.routeCode || route.input || route.title || "Route").trim();
+function shortLabel(route: SavedRoute, t: (key: string) => string): string {
+    const source = (route.routeCode || route.input || route.title || t("RoadSignsTools.UI[RouteShortLabelFallback]")).trim();
     if (!source) {
-        return "Route";
+        return t("RoadSignsTools.UI[RouteShortLabelFallback]");
     }
 
     const compact = source.split(/\s+/)[0];

@@ -6,6 +6,7 @@ import { MODE_OPTIONS } from "constants";
 import { RouteToolModeCommand } from "types";
 import { RouteCodeControls } from "components/RouteCodeControls";
 import { logUiEvent } from "diagnostics";
+import { useRoadSignsLocalization } from "localization";
 import styles from "styles/panel.module.scss";
 
 function commandForBackendMode(backendMode: string): RouteToolModeCommand {
@@ -20,6 +21,7 @@ function commandForBackendMode(backendMode: string): RouteToolModeCommand {
 
 export function CreateTab() {
     const { state } = useRoadSignsTools();
+    const { t } = useRoadSignsLocalization();
     const isRenameMode = state.mode === "RenameSelectedSegments";
     const canClear = state.selectedSegments > 0 || state.waypointCount > 0 || !!state.input;
     const canApply = state.selectedSegments > 0;
@@ -31,10 +33,10 @@ export function CreateTab() {
     };
 
     return (
-        <section className={styles.createTab} aria-label="Create route controls">
+        <section className={styles.createTab} aria-label={t("RoadSignsTools.UI[CreateRouteControlsAria]")}>
             <div className={styles.modeStack}>
                 {MODE_OPTIONS.map((option) => (
-                    <DelayedTooltip key={option.id} tooltip={modeTooltip(option.backendMode)}>
+                    <DelayedTooltip key={option.id} tooltip={modeTooltip(option.backendMode, t)}>
                         <button
                             className={[
                                 styles.modeCard,
@@ -49,7 +51,7 @@ export function CreateTab() {
                                 panelActions.setMode(mode);
                             }}
                         >
-                            <strong>{option.label}</strong>
+                            <strong>{modeLabel(option.backendMode, t)}</strong>
                         </button>
                     </DelayedTooltip>
                 ))}
@@ -57,13 +59,13 @@ export function CreateTab() {
 
             {isRenameMode ? (
                 <label className={styles.field}>
-                    <span className={styles.fieldLabel}>Road name</span>
+                    <span className={styles.fieldLabel}>{t("RoadSignsTools.UI[RoadName]")}</span>
                     <input
                         className={styles.textInput}
                         type="text"
                         value={state.input}
                         onChange={onInputChange}
-                        aria-label="Road name"
+                        aria-label={t("RoadSignsTools.UI[RoadName]")}
                     />
                 </label>
             ) : (
@@ -72,24 +74,24 @@ export function CreateTab() {
 
             <div className={styles.panelDivider} />
 
-            <div className={styles.summaryRow} aria-label="Current route summary">
+            <div className={styles.summaryRow} aria-label={t("RoadSignsTools.UI[CurrentRouteSummaryAria]")}>
                 <article className={styles.summaryCard}>
-                    <span>Waypoints</span>
+                    <span>{t("RoadSignsTools.UI[Waypoints]")}</span>
                     <strong>{state.waypointCount}</strong>
                 </article>
                 <article className={styles.summaryCard}>
-                    <span>Segments</span>
+                    <span>{t("RoadSignsTools.UI[Segments]")}</span>
                     <strong>{state.selectedSegments}</strong>
                 </article>
             </div>
 
             <article className={styles.previewCard}>
-                <span>Preview</span>
-                <p>{state.previewText || "Base names preserved | Route code to apply: A12 |"}</p>
+                <span>{t("RoadSignsTools.UI[Preview]")}</span>
+                <p>{state.previewText || t("RoadSignsTools.UI[PreviewFallback]")}</p>
             </article>
 
             <footer className={styles.panelActions}>
-                <DelayedTooltip tooltip="Remove the last committed waypoint from the current route.">
+                <DelayedTooltip tooltip={t("RoadSignsTools.UI[UndoWaypointTooltip]")}>
                     <button
                         className={styles.secondaryButton}
                         type="button"
@@ -99,10 +101,10 @@ export function CreateTab() {
                             panelActions.removeLast();
                         }}
                     >
-                        Undo Waypoint
+                        {t("RoadSignsTools.UI[UndoWaypoint]")}
                     </button>
                 </DelayedTooltip>
-                <DelayedTooltip tooltip="Clear the current route draft, including waypoints and input.">
+                <DelayedTooltip tooltip={t("RoadSignsTools.UI[ClearTooltip]")}>
                     <button
                         className={styles.secondaryButton}
                         type="button"
@@ -116,10 +118,10 @@ export function CreateTab() {
                             panelActions.clear();
                         }}
                     >
-                        Clear
+                        {t("RoadSignsTools.UI[Clear]")}
                     </button>
                 </DelayedTooltip>
-                <DelayedTooltip tooltip="Apply the current route configuration to the selected route.">
+                <DelayedTooltip tooltip={t("RoadSignsTools.UI[ApplyTooltip]")}>
                     <button
                         className={styles.primaryButton}
                         type="button"
@@ -134,7 +136,7 @@ export function CreateTab() {
                             panelActions.apply();
                         }}
                     >
-                        Apply
+                        {t("RoadSignsTools.UI[Apply]")}
                     </button>
                 </DelayedTooltip>
             </footer>
@@ -142,12 +144,23 @@ export function CreateTab() {
     );
 }
 
-function modeTooltip(mode: string): string {
+function modeLabel(mode: string, t: (key: string) => string): string {
     if (mode === "RenameSelectedSegments") {
-        return "Rename the currently selected road segments.";
+        return t("RoadSignsTools.UI[ModeRename]");
     }
     if (mode === "RemoveMajorRouteNumber") {
-        return "Remove the configured route designation from the selected segments.";
+        return t("RoadSignsTools.UI[ModeRemove]");
     }
-    return "Assign a major route number to the current route selection.";
+
+    return t("RoadSignsTools.UI[ModeAssign]");
+}
+
+function modeTooltip(mode: string, t: (key: string) => string): string {
+    if (mode === "RenameSelectedSegments") {
+        return t("RoadSignsTools.UI[ModeRenameTooltip]");
+    }
+    if (mode === "RemoveMajorRouteNumber") {
+        return t("RoadSignsTools.UI[ModeRemoveTooltip]");
+    }
+    return t("RoadSignsTools.UI[ModeAssignTooltip]");
 }

@@ -6,16 +6,18 @@ import { SavedRouteDetails } from "components/SavedRouteDetails";
 import { SavedRoutesCollapsedRail } from "components/SavedRoutesCollapsedRail";
 import { SavedRoutesTab } from "components/SavedRoutesTab";
 import { logUiEvent } from "diagnostics";
+import { useRoadSignsLocalization } from "localization";
 import styles from "styles/panel.module.scss";
 
 export function PanelShell() {
     const { activeTab, selectedRouteId, setActiveTab, setSelectedRouteId, state } = useRoadSignsTools();
+    const { t } = useRoadSignsLocalization();
     const selectedRoute = activeTab === "saved" ? state.savedRoutes.find((route) => route.id === selectedRouteId) ?? null : null;
     const activeReview = state.routeReview && selectedRoute && state.routeReview.routeId === selectedRoute.id ? state.routeReview : null;
     const roadNameEditRoute = state.roadNameEditRouteId
         ? state.savedRoutes.find((route) => route.id === state.roadNameEditRouteId) ?? null
         : null;
-    const roadNameEditIdentifier = roadNameEditRoute?.routeCode || roadNameEditRoute?.input || roadNameEditRoute?.title || "route";
+    const roadNameEditIdentifier = roadNameEditRoute?.routeCode || roadNameEditRoute?.input || roadNameEditRoute?.title || t("RoadSignsTools.UI[RouteShortLabelFallback]");
 
     if (state.roadNameEditRouteId) {
         return (
@@ -32,9 +34,9 @@ export function PanelShell() {
                         }
                     }}
                 >
-                    Return to Saved Routes
+                    {t("RoadSignsTools.UI[ReturnToSavedRoutes]")}
                 </button>
-                {roadNameEditRoute && <p className={styles.compactReturnLabel}>Editing road names for {roadNameEditIdentifier}</p>}
+                {roadNameEditRoute && <p className={styles.compactReturnLabel}>{t("RoadSignsTools.UI[EditingRoadNamesFor]")} {roadNameEditIdentifier}</p>}
             </div>
         );
     }
@@ -69,17 +71,17 @@ export function PanelShell() {
 
     return (
         <div className={`${styles.panelWorkspace} ${activeTab === "saved" ? styles.savedWorkspace : ""}`}>
-            <section className={styles.panel} aria-label="Road Signs Tools panel">
+            <section className={styles.panel} aria-label={t("RoadSignsTools.UI[PanelAria]")}>
                 <header className={styles.panelHeader}>
                     <div className={styles.panelHeading}>
-                        <h2>{activeTab === "saved" ? "Road Signs Tools" : "Road Name Tools"}</h2>
-                        <p>Route creation and saved route manager</p>
+                        <h2>{activeTab === "saved" ? t("RoadSignsTools.UI[PanelTitle]") : t("RoadSignsTools.UI[PanelTitleRoadName]")}</h2>
+                        <p>{t("RoadSignsTools.UI[PanelSubtitle]")}</p>
                     </div>
-                    <DelayedTooltip tooltip="Close the Road Signs Tools panel." direction="left">
+                    <DelayedTooltip tooltip={t("RoadSignsTools.UI[ClosePanelTooltip]")} direction="left">
                         <button
                             className={styles.iconButton}
                             type="button"
-                            aria-label="Close panel"
+                            aria-label={t("RoadSignsTools.UI[ClosePanelAria]")}
                             onClick={() => {
                                 logUiEvent("close clicked");
                                 panelActions.cancel();
@@ -90,8 +92,8 @@ export function PanelShell() {
                     </DelayedTooltip>
                 </header>
 
-                <nav className={styles.tabSwitch} aria-label="Road Signs Tools tabs">
-                    <DelayedTooltip tooltip="Route creation">
+                <nav className={styles.tabSwitch} aria-label={t("RoadSignsTools.UI[TabsAria]")}>
+                    <DelayedTooltip tooltip={t("RoadSignsTools.UI[CreateTabTooltip]")}>
                         <button
                             className={`${styles.tabButton} ${activeTab === "create" ? styles.isActive : ""}`}
                             type="button"
@@ -101,10 +103,10 @@ export function PanelShell() {
                                 setActiveTab("create");
                             }}
                         >
-                            Create
+                            {t("RoadSignsTools.UI[CreateTab]")}
                         </button>
                     </DelayedTooltip>
-                    <DelayedTooltip tooltip="Open saved routes and route-management actions.">
+                    <DelayedTooltip tooltip={t("RoadSignsTools.UI[SavedRoutesTabTooltip]")}>
                         <button
                             className={`${styles.tabButton} ${activeTab === "saved" ? styles.isActive : ""}`}
                             type="button"
@@ -114,7 +116,7 @@ export function PanelShell() {
                                 setActiveTab("saved");
                             }}
                         >
-                            Saved Routes
+                            {t("RoadSignsTools.UI[SavedRoutesTab]")}
                         </button>
                     </DelayedTooltip>
                 </nav>

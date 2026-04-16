@@ -1,10 +1,13 @@
 using System;
+using Colossal.Serialization.Entities;
 using Colossal.UI.Binding;
 using Game;
+using Game.Input;
 using Game.SceneFlow;
 using Game.Tools;
 using Game.UI;
 using RoadSignsTools.Domain;
+using RoadSignsTools.Settings;
 
 namespace RoadSignsTools.Systems
 {
@@ -26,7 +29,7 @@ namespace RoadSignsTools.Systems
         private bool _lastPanelOpen;
         private bool _lastInGameBinding;
         private bool _lastShowLauncher;
-        private bool _launcherSettingSuppressedLogShown;
+        private ProxyAction _toggleToolAction;
 
         protected override void OnCreate()
         {
@@ -34,6 +37,7 @@ namespace RoadSignsTools.Systems
             _toolSystem = World.GetOrCreateSystemManaged<RoadRouteToolSystem>();
             _gameToolSystem = World.GetOrCreateSystemManaged<ToolSystem>();
             _defaultToolSystem = World.GetOrCreateSystemManaged<DefaultToolSystem>();
+            _toggleToolAction = Mod.Settings?.GetAction(RoadSignsToolSettings.KeyBinding.ToggleTool);
 
             _lastState = BuildClosedState(false, true);
             _stateBinding = new ValueBinding<string>(PanelBindingGroup, "state", _lastState, ValueWriters.Create<string>(), System.Collections.Generic.EqualityComparer<string>.Default);
@@ -73,6 +77,13 @@ namespace RoadSignsTools.Systems
 
         protected override void OnUpdate()
         {
+            EnsureToggleToolAction();
+
+            if (_toggleToolAction != null && _toggleToolAction.WasPerformedThisFrame())
+            {
+                TogglePanel();
+            }
+
             var gameplayAvailable = IsGameplayUiContextAvailable();
 
             if (_lastGameplayAvailable != gameplayAvailable)
@@ -93,6 +104,16 @@ namespace RoadSignsTools.Systems
             {
                 _lastState = state;
                 _stateBinding.Update(state);
+            }
+        }
+
+        protected override void OnGameLoadingComplete(Purpose purpose, GameMode mode)
+        {
+            base.OnGameLoadingComplete(purpose, mode);
+            EnsureToggleToolAction();
+            if (_toggleToolAction != null)
+            {
+                _toggleToolAction.shouldBeEnabled = mode == GameMode.Game;
             }
         }
 
@@ -450,16 +471,7 @@ namespace RoadSignsTools.Systems
 
         private bool ShouldShowLauncher()
         {
-            if (Mod.Settings == null || Mod.Settings.ShowTopLeftLauncherButton)
-                return true;
-
-            if (!_launcherSettingSuppressedLogShown)
-            {
-                _launcherSettingSuppressedLogShown = true;
-                Mod.log.Warn("Road Naming: launcher setting is disabled, but the native launcher is being shown for the recovery build so the panel is not stranded.");
-            }
-
-            return true;
+            return Mod.Settings?.ShowTopLeftLauncherButton ?? true;
         }
 
         private bool IsGameplayContextAvailable()
@@ -512,6 +524,14 @@ namespace RoadSignsTools.Systems
         private static string Escape(string value)
         {
             return (value ?? string.Empty).Replace("\\", "\\\\").Replace("|", "\\p").Replace("\n", "\\n").Replace("\r", string.Empty);
+        }
+
+        private void EnsureToggleToolAction()
+        {
+            if (_toggleToolAction == null && Mod.Settings != null)
+            {
+                _toggleToolAction = Mod.Settings.GetAction(RoadSignsToolSettings.KeyBinding.ToggleTool);
+            }
         }
     }
 }

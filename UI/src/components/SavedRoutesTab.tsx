@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo } from "react";
 import { panelActions } from "bindings";
 import { useRoadSignsTools } from "context/RoadSignsToolsContext";
 import { logUiEvent } from "diagnostics";
+import { useRoadSignsLocalization } from "localization";
 import { SavedRoute, SavedRouteFilter } from "types";
 import styles from "styles/panel.module.scss";
 
@@ -9,6 +10,7 @@ const ROUTE_FILTERS: SavedRouteFilter[] = ["M", "A", "B", "C", "None"];
 
 export function SavedRoutesTab() {
     const { savedRouteFilter, setSavedRouteFilter, setSelectedRouteId, state } = useRoadSignsTools();
+    const { t } = useRoadSignsLocalization();
     const visibleRoutes = useMemo(
         () => savedRouteFilter
             ? state.savedRoutes.filter((route) => routePrefixFilter(route) === savedRouteFilter)
@@ -28,19 +30,19 @@ export function SavedRoutesTab() {
     }, [setSelectedRouteId]);
 
     return (
-        <section className={styles.savedTab} aria-label="Saved routes manager">
+        <section className={styles.savedTab} aria-label={t("RoadSignsTools.UI[SavedRoutesManagerAria]")}>
             <header className={styles.savedHeaderBlock}>
                 <div>
-                    <span className={styles.savedEyebrow}>Saved Routes</span>
-                    <p>Choose a route to view details and actions.</p>
+                    <span className={styles.savedEyebrow}>{t("RoadSignsTools.UI[SavedRoutesHeading]")}</span>
+                    <p>{t("RoadSignsTools.UI[SavedRoutesIntro]")}</p>
                 </div>
                 <strong>{state.savedRoutes.length}</strong>
             </header>
 
             <div className={styles.savedDivider} />
 
-            <div className={styles.filterBlock} aria-label="Saved route filters">
-                <span className={styles.filterLabel}>Filters</span>
+            <div className={styles.filterBlock} aria-label={t("RoadSignsTools.UI[SavedRouteFiltersAria]")}>
+                <span className={styles.filterLabel}>{t("RoadSignsTools.UI[Filters]")}</span>
                 <div className={styles.filterChipRow}>
                     {ROUTE_FILTERS.map((filter) => {
                         const isNoneFilter = filter === "None";
@@ -51,10 +53,10 @@ export function SavedRoutesTab() {
                                 className={`${styles.filterChip} ${filter === "None" ? styles.filterChipWide : ""} ${isActive ? styles.isActive : ""}`}
                                 type="button"
                                 aria-pressed={isActive}
-                                title={filterTooltip(filter)}
+                                title={filterTooltip(filter, t)}
                                 onClick={() => handleFilterClick(filter)}
                             >
-                                {filter}
+                                {filter === "None" ? t("RoadSignsTools.UI[FilterAll]") : filter}
                             </button>
                         );
                     })}
@@ -62,12 +64,12 @@ export function SavedRoutesTab() {
             </div>
 
             {state.savedRoutes.length === 0 ? (
-                <div className={styles.emptyState}>No saved routes yet. Apply a route to save it automatically.</div>
+                <div className={styles.emptyState}>{t("RoadSignsTools.UI[NoSavedRoutes]")}</div>
             ) : visibleRoutes.length === 0 ? (
-                <div className={styles.emptyState}>No saved routes match this filter.</div>
+                <div className={styles.emptyState}>{t("RoadSignsTools.UI[NoSavedRoutesForFilter]")}</div>
             ) : (
                 <div className={styles.savedRouteListFrame}>
-                    <div className={styles.savedRouteList} aria-label="Saved route list">
+                    <div className={styles.savedRouteList} aria-label={t("RoadSignsTools.UI[SavedRouteListAria]")}>
                         {visibleRoutes.map((route) => (
                             <SavedRouteCard
                                 key={route.id}
@@ -83,11 +85,13 @@ export function SavedRoutesTab() {
 }
 
 const SavedRouteCard = memo(function SavedRouteCard({ route, onSelect }: { route: SavedRoute; onSelect: (routeId: number) => void }) {
+    const { t } = useRoadSignsLocalization();
+
     return (
         <button
             className={styles.savedRouteCard}
             type="button"
-            title="Open this saved route. Double-click to preview it on the map."
+            title={t("RoadSignsTools.UI[OpenSavedRouteTooltip]")}
             onClick={() => {
                 logUiEvent("saved route card clicked", { routeId: route.id });
                 onSelect(route.id);
@@ -98,20 +102,30 @@ const SavedRouteCard = memo(function SavedRouteCard({ route, onSelect }: { route
             }}
         >
             <span className={styles.savedRouteCardMain}>
-                <strong>{route.title || route.input || "Saved Route"}</strong>
-                <span>{route.subtitle || routeSummary(route)}</span>
+                <strong>{route.title || route.input || t("RoadSignsTools.UI[SavedRoute]")}</strong>
+                <span>{route.subtitle || routeSummary(route, t)}</span>
             </span>
-            <span className={`${styles.statusPill} ${styles[`status${route.status}`]}`}>{statusLabel(route.status)}</span>
+            <span className={`${styles.statusPill} ${styles[`status${route.status}`]}`}>{statusLabel(route.status, t)}</span>
         </button>
     );
 });
 
-function filterTooltip(filter: SavedRouteFilter): string {
+function filterTooltip(filter: SavedRouteFilter, t: (key: string) => string): string {
     if (filter === "None") {
-        return "Show all saved routes without applying a prefix filter.";
+        return t("RoadSignsTools.UI[FilterAllTooltip]");
     }
 
-    return `Show only saved routes that use the ${filter} prefix.`;
+    if (filter === "M") {
+        return t("RoadSignsTools.UI[FilterPrefixMTooltip]");
+    }
+    if (filter === "A") {
+        return t("RoadSignsTools.UI[FilterPrefixATooltip]");
+    }
+    if (filter === "B") {
+        return t("RoadSignsTools.UI[FilterPrefixBTooltip]");
+    }
+
+    return t("RoadSignsTools.UI[FilterPrefixCTooltip]");
 }
 
 function routePrefixFilter(route: SavedRoute): SavedRouteFilter | "Custom" {
@@ -129,20 +143,20 @@ function routePrefixFromInput(input: string): SavedRouteFilter | "Custom" {
     return prefix === "M" || prefix === "A" || prefix === "B" || prefix === "C" ? prefix : "Custom";
 }
 
-function routeSummary(route: SavedRoute): string {
-    const corridor = route.derivedDisplayCorridor || route.streets || route.input || "Saved route";
-    return `${corridor} | ${route.segments} segments`;
+function routeSummary(route: SavedRoute, t: (key: string) => string): string {
+    const corridor = route.derivedDisplayCorridor || route.streets || route.input || t("RoadSignsTools.UI[SavedRouteSummaryFallback]");
+    return `${corridor} | ${route.segments} ${t("RoadSignsTools.UI[Segments]")}`;
 }
 
-function statusLabel(status: string): string {
+function statusLabel(status: string, t: (key: string) => string): string {
     if (status === "PartiallyValid") {
-        return "Partial";
+        return t("RoadSignsTools.UI[StatusPartial]");
     }
     if (status === "RebuildNeeded") {
-        return "Rebuild";
+        return t("RoadSignsTools.UI[StatusRebuild]");
     }
     if (status === "MissingSegments") {
-        return "Missing";
+        return t("RoadSignsTools.UI[StatusMissing]");
     }
     return status;
 }

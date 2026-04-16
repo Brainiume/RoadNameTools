@@ -7,23 +7,30 @@ using Game.SceneFlow;
 using RoadSignsTools.L10N;
 using RoadSignsTools.Settings;
 using RoadSignsTools.Systems;
+using System.Reflection;
 
 namespace RoadSignsTools
 {
     public class Mod : IMod
     {
+        public static readonly string Id = nameof(RoadSignsTools);
         private static readonly ILog BaseLog = LogManager.GetLogger($"{nameof(RoadSignsTools)}.{nameof(Mod)}").SetShowsErrorsInUI(false);
 
         public static readonly ConditionalLog log = new ConditionalLog(BaseLog);
+
+        public static Mod Instance { get; private set; }
 
         public static RoadSignsToolSettings Settings { get; private set; }
 
         public static string ModRootPath { get; private set; }
 
+        public string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString(4) ?? "0.0.0.0";
+
         public static bool IsLoggingEnabled => Settings?.EnableLogging == true;
 
         public void OnLoad(UpdateSystem updateSystem)
         {
+            Instance = this;
             log.Info(nameof(OnLoad));
 
             if (GameManager.instance.modManager.TryGetExecutableAsset(this, out var asset))
@@ -33,12 +40,12 @@ namespace RoadSignsTools
             }
 
             RegisterUiAssetHost();
-            RoadSignsLocalization.Register();
 
             Settings = new RoadSignsToolSettings(this);
-            Settings.SetDefaults();
+            RoadSignsLocalization.Register(this, Settings);
+            Settings.RegisterKeyBindings();
             Settings.RegisterInOptionsUI();
-            AssetDatabase.global.LoadSettings(nameof(RoadSignsToolSettings), Settings, new RoadSignsToolSettings(this), true);
+            AssetDatabase.global.LoadSettings(RoadSignsToolSettings.SettingsAssetName, Settings, new RoadSignsToolSettings(this));
 
             updateSystem.UpdateAt<SegmentMetadataSystem>(SystemUpdatePhase.Deserialize);
             updateSystem.UpdateAt<SegmentMetadataSystem>(SystemUpdatePhase.Serialize);
@@ -73,8 +80,10 @@ namespace RoadSignsTools
         {
             log.Info(nameof(OnDispose));
             RoadSignsLocalization.Unregister();
+            Settings?.UnregisterInOptionsUI();
             Settings = null;
             ModRootPath = null;
+            Instance = null;
         }
 
         public sealed class ConditionalLog

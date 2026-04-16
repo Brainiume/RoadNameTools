@@ -1,64 +1,71 @@
+using Colossal.IO.AssetDatabase;
+using Game.Input;
 using Game.Modding;
 using Game.Settings;
+using Game.UI.Widgets;
 using RoadSignsTools.Domain;
 
 namespace RoadSignsTools.Settings
 {
-    public sealed class RoadSignsToolSettings : ModSetting
+    [FileLocation("RoadSignsTools")]
+    [SettingsUITabOrder(GeneralTab, KeybindingsTab)]
+    [SettingsUIGroupOrder(DisplayGroup, InterfaceGroup, AdvancedGroup, AboutGroup, ResetGroup, ControlsGroup, KeybindingResetGroup)]
+    [SettingsUIShowGroupName(DisplayGroup, InterfaceGroup, AdvancedGroup, AboutGroup, ResetGroup, ControlsGroup, KeybindingResetGroup)]
+    [SettingsUIKeyboardAction(KeyBinding.ToggleTool, Usages.kDefaultUsage, Usages.kToolUsage)]
+    public sealed partial class RoadSignsToolSettings : ModSetting
     {
-        public const string MainSection = "Main";
-        public const string DisplaySection = "Display";
-        public const string SafetySection = "Safety";
+        internal const string SettingsAssetName = "Road Signs Tools Settings";
 
-        public RoadSignsToolSettings(IMod mod) : base(mod)
+        public const string GeneralTab = "General";
+        public const string KeybindingsTab = "Keybindings";
+
+        public const string DisplayGroup = "Display";
+        public const string InterfaceGroup = "Interface";
+        public const string AdvancedGroup = "Advanced";
+        public const string AboutGroup = "About";
+        public const string ResetGroup = "Reset";
+        public const string ControlsGroup = "Controls";
+        public const string KeybindingResetGroup = "KeybindingReset";
+
+        public RoadSignsToolSettings(IMod mod)
+            : base(mod)
         {
+            SetDefaults();
         }
 
-        [SettingsUISection(DisplaySection)]
+        [SettingsUISection(GeneralTab, DisplayGroup)]
         [SettingsUITextInput]
         public string BaseRouteSeparator { get; set; }
 
-        [SettingsUISection(DisplaySection)]
+        [SettingsUISection(GeneralTab, DisplayGroup)]
         [SettingsUITextInput]
         public string RouteNumberSeparator { get; set; }
 
-        [SettingsUISection(DisplaySection)]
+        [SettingsUISection(GeneralTab, DisplayGroup)]
         public bool AllowMultipleRouteNumbers { get; set; }
 
-        [SettingsUISection(DisplaySection)]
+        [SettingsUISection(GeneralTab, DisplayGroup)]
+        [SettingsUIDropdown(typeof(RoadSignsToolSettings), nameof(GetOrderingModeOptions))]
         public RouteNumberOrderingMode OrderingMode { get; set; }
 
-        [SettingsUISection(SafetySection)]
-        public bool ConfirmBeforeReplacingExistingCustomName { get; set; }
-
-        [SettingsUISection(SafetySection)]
-        public bool ConfirmBeforeRemovingRouteNumber { get; set; }
-
-        [SettingsUISection(SafetySection)]
-        public bool EnableAutoPathBetweenConnectedClicks { get; set; }
-
-        [SettingsUISection(MainSection)]
-        [SettingsUITextInput]
-        public string ActivationHotkeyHint { get; set; }
-
-        [SettingsUISection(MainSection)]
+        [SettingsUISection(GeneralTab, InterfaceGroup)]
         public bool ShowTopLeftLauncherButton { get; set; }
 
-        [SettingsUISection(MainSection)]
+        [SettingsUISection(GeneralTab, AdvancedGroup)]
         public bool EnableLogging { get; set; }
 
-        [SettingsUISection(MainSection)]
+        [SettingsUISection(GeneralTab, AboutGroup)]
+        public string Version => Mod.Instance?.Version ?? string.Empty;
+
+        [SettingsUISection(GeneralTab, ResetGroup)]
         [SettingsUIButton]
-        public bool ResetSettingsToDefaults
+        [SettingsUIConfirmation]
+        public bool ResetGeneralSettings
         {
             set
             {
-                if (!value)
-                    return;
-
                 SetDefaults();
                 ApplyAndSave();
-                RoadSignsTools.Mod.log.Info("Road Naming: settings reset to defaults and saved.");
             }
         }
 
@@ -68,12 +75,30 @@ namespace RoadSignsTools.Settings
             RouteNumberSeparator = " / ";
             AllowMultipleRouteNumbers = true;
             OrderingMode = RouteNumberOrderingMode.InsertionOrder;
-            ConfirmBeforeReplacingExistingCustomName = true;
-            ConfirmBeforeRemovingRouteNumber = true;
-            EnableAutoPathBetweenConnectedClicks = true;
-            ActivationHotkeyHint = "Ctrl+Q";
             ShowTopLeftLauncherButton = true;
             EnableLogging = false;
+        }
+
+        public DropdownItem<RouteNumberOrderingMode>[] GetOrderingModeOptions()
+        {
+            return new[]
+            {
+                new DropdownItem<RouteNumberOrderingMode>
+                {
+                    value = RouteNumberOrderingMode.InsertionOrder,
+                    displayName = GetOrderingModeLocaleID(RouteNumberOrderingMode.InsertionOrder),
+                },
+                new DropdownItem<RouteNumberOrderingMode>
+                {
+                    value = RouteNumberOrderingMode.Sorted,
+                    displayName = GetOrderingModeLocaleID(RouteNumberOrderingMode.Sorted),
+                },
+            };
+        }
+
+        public string GetOrderingModeLocaleID(RouteNumberOrderingMode mode)
+        {
+            return $"{Mod.Id}.Options.OrderingMode[{mode}]";
         }
 
         public SegmentDisplaySettings ToDisplaySettings()
@@ -83,10 +108,13 @@ namespace RoadSignsTools.Settings
                 BaseRouteSeparator = string.IsNullOrEmpty(BaseRouteSeparator) ? " - " : BaseRouteSeparator,
                 RouteNumberSeparator = string.IsNullOrEmpty(RouteNumberSeparator) ? " / " : RouteNumberSeparator,
                 AllowMultipleRouteNumbers = AllowMultipleRouteNumbers,
-                OrderingMode = OrderingMode
+                OrderingMode = OrderingMode,
             };
+        }
+
+        internal static class KeyBinding
+        {
+            internal const string ToggleTool = "ToggleRoadSignsTools";
         }
     }
 }
-
-

@@ -5,6 +5,7 @@ import { DelayedTooltip } from "components/DelayedTooltip";
 import { useRoadSignsTools } from "context/RoadSignsToolsContext";
 import { logUiEvent } from "diagnostics";
 import { normalizeToken, parseRouteCode, useRouteCodeDraft } from "hooks/useRouteCodeDraft";
+import { useRoadSignsLocalization } from "localization";
 import { PrefixType, RouteToolMode } from "types";
 import styles from "styles/panel.module.scss";
 
@@ -13,22 +14,16 @@ interface RouteCodeControlsProps {
     mode: RouteToolMode;
 }
 
-const ROUTE_PREFIX_DESCRIPTIONS: Record<string, string> = {
-    M: "Motorway / Highway - Carries the most traffic in your city. High-speed, limited-access roads.",
-    A: "A-Road - Major arterial road connecting districts and suburbs. High traffic volume.",
-    B: "B-Road - Secondary road serving as an alternative to A-roads. Moderate traffic volume.",
-    C: "C-Road - Minor road connecting smaller points of interest. Low to moderate traffic.",
-};
-
 export function RouteCodeControls({ input, mode }: RouteCodeControlsProps) {
     const { state } = useRoadSignsTools();
+    const { t } = useRoadSignsLocalization();
     const { draft, updateDraft, composed } = useRouteCodeDraft(input);
-    const label = mode === "RemoveMajorRouteNumber" ? "Route code to remove" : "Route code to assign";
+    const label = mode === "RemoveMajorRouteNumber" ? t("RoadSignsTools.UI[RouteCodeToRemoveAria]") : t("RoadSignsTools.UI[RouteCodeToAssignAria]");
     const resultPreview = composed
         ? state.routeNumberPlacement === "BeforeBaseName"
-            ? `${composed} - Base name`
-            : `Base name - ${composed}`
-        : "Enter a route number";
+            ? `${composed} - ${t("RoadSignsTools.UI[BaseNamePlaceholder]")}`
+            : `${t("RoadSignsTools.UI[BaseNamePlaceholder]")} - ${composed}`
+        : t("RoadSignsTools.UI[EnterRouteNumber]");
 
     const setPrefix = (prefixType: PrefixType) => {
         const nextDraft = { ...draft, prefixType };
@@ -57,10 +52,10 @@ export function RouteCodeControls({ input, mode }: RouteCodeControlsProps) {
     return (
         <section className={styles.routeCodeGroup} aria-label={label}>
             <div className={styles.routeControlBlock}>
-                <span className={styles.sectionLabel}>Route Prefix</span>
-                <div className={styles.prefixChipRow} aria-label="Route prefix">
+                <span className={styles.sectionLabel}>{t("RoadSignsTools.UI[RoutePrefix]")}</span>
+                <div className={styles.prefixChipRow} aria-label={t("RoadSignsTools.UI[RoutePrefix]")}>
                     {PRESET_PREFIXES.map((prefix) => (
-                        <DelayedTooltip key={prefix} tooltip={ROUTE_PREFIX_DESCRIPTIONS[prefix]}>
+                        <DelayedTooltip key={prefix} tooltip={prefixDescription(prefix, t)}>
                             <button
                                 className={`${styles.prefixChip} ${draft.prefixType === prefix ? styles.isActive : ""}`}
                                 type="button"
@@ -70,7 +65,7 @@ export function RouteCodeControls({ input, mode }: RouteCodeControlsProps) {
                             </button>
                         </DelayedTooltip>
                     ))}
-                    <DelayedTooltip tooltip="Use a custom route prefix that you type yourself.">
+                    <DelayedTooltip tooltip={t("RoadSignsTools.UI[CustomPrefixTooltip]")}>
                         <button
                             className={[
                                 styles.prefixChip,
@@ -80,16 +75,16 @@ export function RouteCodeControls({ input, mode }: RouteCodeControlsProps) {
                             type="button"
                             onClick={() => setPrefix("Custom")}
                         >
-                            Custom
+                            {t("RoadSignsTools.UI[Custom]")}
                         </button>
                     </DelayedTooltip>
                 </div>
             </div>
 
             <div className={styles.routeControlBlock}>
-                <span className={styles.sectionLabel}>Route Position</span>
-                <div className={styles.routeNumberRow} aria-label="Route number placement">
-                    <DelayedTooltip tooltip="Show the route number before the road name, for example M1 - Northern Hwy.">
+                <span className={styles.sectionLabel}>{t("RoadSignsTools.UI[RoutePosition]")}</span>
+                <div className={styles.routeNumberRow} aria-label={t("RoadSignsTools.UI[RouteNumberPlacementAria]")}>
+                    <DelayedTooltip tooltip={t("RoadSignsTools.UI[PositionBeforeTooltip]")}>
                         <button
                             className={`${styles.numberModeButton} ${state.routeNumberPlacement === "BeforeBaseName" ? styles.isActive : ""}`}
                             type="button"
@@ -98,10 +93,10 @@ export function RouteCodeControls({ input, mode }: RouteCodeControlsProps) {
                                 panelActions.setRouteNumberPlacement("BeforeBaseName");
                             }}
                         >
-                            Before
+                            {t("RoadSignsTools.UI[PositionBefore]")}
                         </button>
                     </DelayedTooltip>
-                    <DelayedTooltip tooltip="Show the route number after the road name, for example Northern Hwy - M1.">
+                    <DelayedTooltip tooltip={t("RoadSignsTools.UI[PositionAfterTooltip]")}>
                         <button
                             className={`${styles.numberModeButton} ${state.routeNumberPlacement === "AfterBaseName" ? styles.isActive : ""}`}
                             type="button"
@@ -111,7 +106,7 @@ export function RouteCodeControls({ input, mode }: RouteCodeControlsProps) {
                             }}
                             style={{ marginLeft: "8rem" }}
                         >
-                            After
+                            {t("RoadSignsTools.UI[PositionAfter]")}
                         </button>
                     </DelayedTooltip>
                 </div>
@@ -121,24 +116,24 @@ export function RouteCodeControls({ input, mode }: RouteCodeControlsProps) {
                 className={`${styles.compactField} ${draft.prefixType === "Custom" ? styles.isVisible : ""}`}
                 aria-hidden={draft.prefixType !== "Custom"}
             >
-                <span className={styles.sectionLabel}>Custom Prefix</span>
+                <span className={styles.sectionLabel}>{t("RoadSignsTools.UI[CustomPrefix]")}</span>
                 <input
                     className={styles.textInput}
                     type="text"
                     value={draft.customPrefix}
                     onChange={setCustomPrefix}
-                    aria-label="Custom route prefix"
+                    aria-label={t("RoadSignsTools.UI[CustomRoutePrefixAria]")}
                     disabled={draft.prefixType !== "Custom"}
                     tabIndex={draft.prefixType === "Custom" ? 0 : -1}
                 />
             </label>
 
             <div className={styles.routeControlBlock}>
-                <span className={styles.sectionLabel}>Route Number</span>
+                <span className={styles.sectionLabel}>{t("RoadSignsTools.UI[RouteNumber]")}</span>
                 <div className={styles.routeNumberRow}>
-                    <DelayedTooltip tooltip="Pick the next available route number for the selected prefix.">
+                    <DelayedTooltip tooltip={t("RoadSignsTools.UI[AutoRouteNumberTooltip]")}>
                         <button className={`${styles.numberModeButton} ${styles.isActive}`} type="button" aria-pressed="true" onClick={useAutoNumber}>
-                            Auto
+                            {t("RoadSignsTools.UI[Auto]")}
                         </button>
                     </DelayedTooltip>
                     <input
@@ -146,14 +141,14 @@ export function RouteCodeControls({ input, mode }: RouteCodeControlsProps) {
                         type="text"
                         value={draft.numberPart}
                         onChange={setNumber}
-                        aria-label="Custom route number"
-                        placeholder="Custom"
+                        aria-label={t("RoadSignsTools.UI[CustomRouteNumberAria]")}
+                        placeholder={t("RoadSignsTools.UI[Custom]")}
                     />
                 </div>
             </div>
 
             <div className={styles.routeControlBlock}>
-                <span className={styles.sectionLabel}>Result</span>
+                <span className={styles.sectionLabel}>{t("RoadSignsTools.UI[Result]")}</span>
                 <div className={styles.resultField}>{resultPreview}</div>
             </div>
         </section>
@@ -177,4 +172,18 @@ function nextRouteNumberForPrefix(prefixType: PrefixType, customPrefix: string, 
     });
 
     return (highestNumber + 1).toString();
+}
+
+function prefixDescription(prefix: string, t: (key: string) => string): string {
+    if (prefix === "M") {
+        return t("RoadSignsTools.UI[PrefixDescriptionM]");
+    }
+    if (prefix === "A") {
+        return t("RoadSignsTools.UI[PrefixDescriptionA]");
+    }
+    if (prefix === "B") {
+        return t("RoadSignsTools.UI[PrefixDescriptionB]");
+    }
+
+    return t("RoadSignsTools.UI[PrefixDescriptionC]");
 }

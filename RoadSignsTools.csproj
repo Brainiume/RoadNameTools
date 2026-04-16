@@ -110,6 +110,11 @@
 		<None Include="Assets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
 		<None Include="UI\mod.json" Link="mod.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
+	<ItemGroup>
+		<Content Include="L10N\**\*.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
     <Target Name="CopyRoadSignsToolAssets" AfterTargets="DeployWIP" Condition="'$(DeployDir)' != ''">
         <Message Text="[CopyRoadSignsToolAssets]" Importance="high" />
         <ItemGroup>
