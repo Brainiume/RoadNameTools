@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix UI run build",
+    "dev": "npm --prefix UI run dev",
+    "update": "npm --prefix UI run update",
+    "clean": "npm --prefix UI run clean"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.9",
+    "postcss-cli": "^11.0.1"
+  }
+}

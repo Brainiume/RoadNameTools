@@ -1,0 +1,15 @@
+This is a mod focused on segment-based road editing. Instead of changing every road with the same name, it lets you select an exact path of connected road segments and apply changes only to that chosen route.
+
+The mod currently has two main modes:
+
+Road Route Naming
+
+This mode lets you assign major route numbers such as A1, M2, or A8 to a selected road corridor. The original street names stay intact, but the chosen segments gain the route designation, making it possible to build routes across multiple streets without renaming the roads themselves and avoid facing issues of undesired parts of a road w/ the route number.
+
+Road Renaming
+
+This mode lets you rename only the specific road segments you select. That means you can create custom named road corridors without accidentally renaming the entire vanilla defined 'connected' road.
+
+The main goal is to give players more control over road naming as the base game implementation kinda sucks. As a plus the mod also has route designation making it easy to have route naming of highways, arterials, bypasses and other road corridors.
+
+I intend to replace the current UI w/ a more vanilla looking UI as well as simplify it.

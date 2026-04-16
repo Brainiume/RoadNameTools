@@ -1,0 +1,139 @@
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Configurations>Debug;Release</Configurations>
+		<TargetFramework>net48</TargetFramework>
+		<ManagedPath Condition="'$(ManagedPath)' == '' And '$(CSII_MANAGEDPATH)' != ''">$(CSII_MANAGEDPATH)</ManagedPath>
+		<MSCORLIBPath Condition="'$(MSCORLIBPath)' == '' And '$(CSII_MSCORLIBPATH)' != ''">$(CSII_MSCORLIBPATH)</MSCORLIBPath>
+		<UserDataPath Condition="'$(UserDataPath)' == '' And '$(CSII_USERDATAPATH)' != ''">$(CSII_USERDATAPATH)</UserDataPath>
+		<LocalModsPath Condition="'$(LocalModsPath)' == '' And '$(CSII_LOCALMODSPATH)' != ''">$(CSII_LOCALMODSPATH)</LocalModsPath>
+		<LocalModsPath Condition="'$(LocalModsPath)' == '' And '$(UserDataPath)' != ''">$(UserDataPath)\Mods</LocalModsPath>
+		<UnityModProjectPath Condition="'$(UnityModProjectPath)' == '' And '$(CSII_UNITYMODPROJECTPATH)' != ''">$(CSII_UNITYMODPROJECTPATH)</UnityModProjectPath>
+		<ModPostProcessorPath Condition="'$(ModPostProcessorPath)' == '' And '$(CSII_MODPOSTPROCESSORPATH)' != ''">$(CSII_MODPOSTPROCESSORPATH)</ModPostProcessorPath>
+		<ModPublisherPath Condition="'$(ModPublisherPath)' == '' And '$(CSII_MODPUBLISHERPATH)' != ''">$(CSII_MODPUBLISHERPATH)</ModPublisherPath>
+		<EntitiesVersion Condition="'$(EntitiesVersion)' == '' And '$(CSII_ENTITIESVERSION)' != ''">$(CSII_ENTITIESVERSION)</EntitiesVersion>
+	
+		<!--The file where mod information which is required for publishing mod on PDX mods are stored-->
+		<PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
+		<Title>Road Signs Tools</Title>
+		<Version>$("0.1.0")</Version>
+		<Copyright>Copyright (c) 2026</Copyright>
+		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+	  <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	</PropertyGroup>
+	
+	<!--Imports must be after PropertyGroup block-->
+	<Import Project="$(CSII_TOOLPATH)\Mod.props" />
+	<PropertyGroup>
+		<ManagedPath Condition="'$(CSII_MANAGEDPATH)' != ''">$(CSII_MANAGEDPATH)</ManagedPath>
+		<MSCORLIBPath Condition="'$(CSII_MSCORLIBPATH)' != ''">$(CSII_MSCORLIBPATH)</MSCORLIBPath>
+		<UserDataPath Condition="'$(CSII_USERDATAPATH)' != ''">$(CSII_USERDATAPATH)</UserDataPath>
+		<LocalModsPath Condition="'$(CSII_LOCALMODSPATH)' != ''">$(CSII_LOCALMODSPATH)</LocalModsPath>
+		<LocalModsPath Condition="'$(LocalModsPath)' == '' And '$(UserDataPath)' != ''">$(UserDataPath)\Mods</LocalModsPath>
+		<UnityModProjectPath Condition="'$(CSII_UNITYMODPROJECTPATH)' != ''">$(CSII_UNITYMODPROJECTPATH)</UnityModProjectPath>
+		<ModPostProcessorPath Condition="'$(CSII_MODPOSTPROCESSORPATH)' != ''">$(CSII_MODPOSTPROCESSORPATH)</ModPostProcessorPath>
+		<ModPublisherPath Condition="'$(CSII_MODPUBLISHERPATH)' != ''">$(CSII_MODPUBLISHERPATH)</ModPublisherPath>
+		<EntitiesVersion Condition="'$(CSII_ENTITIESVERSION)' != ''">$(CSII_ENTITIESVERSION)</EntitiesVersion>
+		<EntityPackagePath>$(UnityModProjectPath)\Library\PackageCache\com.unity.entities@$(EntitiesVersion)\Unity.Entities\SourceGenerators</EntityPackagePath>
+		<AssemblySearchPaths>$(AssemblySearchPaths);$(ManagedPath)</AssemblySearchPaths>
+	</PropertyGroup>
+	<Import Project="$(CSII_TOOLPATH)\Mod.targets" />
+
+	<ItemGroup>
+		<Reference Include="Game">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Colossal.Core">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Colossal.Localization">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Colossal.Logging">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Colossal.IO.AssetDatabase">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="cohtml.Net">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Colossal.UI.Binding">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Colossal.UI">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Colossal.Mathematics">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="UnityEngine.CoreModule">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Unity.Burst">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Unity.Collections">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Unity.Entities">
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="Unity.Mathematics">
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Update="System">
+			<Private>false</Private>
+		</Reference>
+		<Reference Update="System.Core">
+			<Private>false</Private>
+		</Reference>
+		<Reference Update="System.Data">
+			<Private>false</Private>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="$(ModPropsFile)" Link="Properties\Mod.props" />
+		<None Include="$(ModTargetsFile)" Link="Properties\Mod.targets" />
+		<None Include="Assets\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="UI\mod.json" Link="mod.json" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+    <Target Name="CopyRoadSignsToolAssets" AfterTargets="DeployWIP" Condition="'$(DeployDir)' != ''">
+        <Message Text="[CopyRoadSignsToolAssets]" Importance="high" />
+        <ItemGroup>
+            <_RoadSignsToolAssets Include="$(ProjectDir)Assets\**\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(_RoadSignsToolAssets)" DestinationFolder="$(DeployDir)\Assets\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    </Target>
+    <Target Name="BuildRoadSignsToolTemplateUi" AfterTargets="DeployWIP" Condition="'$(DeployDir)' != ''">
+        <Message Text="[BuildRoadSignsToolTemplateUi] Rebuilding template UI bundle into $(DeployDir)" Importance="high" />
+        <Exec Command="npm --prefix &quot;$(ProjectDir)UI&quot; run build" WorkingDirectory="$(ProjectDir)" />
+    </Target>
+
+	<!-- Automatically build ModAssemblyInfo.cs file. -->
+	<Import Project="ModAssemblyInfo\ModAssemblyInfo.csproj" />
+	<ItemGroup>
+		<None Include="ModAssemblyInfo\ModAssemblyInfo.csproj" />
+	</ItemGroup>
+
+
+</Project>
+
+
+
+
+
+
+
