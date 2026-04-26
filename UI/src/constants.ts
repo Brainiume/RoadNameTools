@@ -2,7 +2,7 @@ export const PANEL_GROUP = "roadSignsTools";
 export const NATIVE_GROUP = "RoadSignsTools";
 export const ICON_SRC = "coui://rst/Logo.svg";
 
-export const DEFAULT_PANEL_STATE = "0|AssignMajorRouteNumber||0|none||||0|0|[]|0|None|0|0|0||AfterBaseName|0";
+export const DEFAULT_PANEL_STATE = "0|AssignMajorRouteNumber||0|none||||0|0|[]|0|None|0|0|0||AfterBaseName|0|0";
 
 export const PRESET_PREFIXES = ["M", "A", "B", "C"] as const;
 

@@ -1,0 +1,19 @@
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 4rem;
+}
+
+.roadSummary {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 6rem;
+}
+
+.logo {
+    width: 22rem;
+    height: 22rem;
+    object-fit: contain;
+    flex: 0 0 auto;
+}

@@ -3,6 +3,7 @@ using Colossal.Logging;
 using Colossal.UI;
 using Game;
 using Game.Modding;
+using Game.Net;
 using Game.SceneFlow;
 using RoadSignsTools.L10N;
 using RoadSignsTools.Settings;
@@ -51,8 +52,10 @@ namespace RoadSignsTools
             updateSystem.UpdateAt<SegmentMetadataSystem>(SystemUpdatePhase.Serialize);
             updateSystem.UpdateAt<RoadRouteToolSystem>(SystemUpdatePhase.ToolUpdate);
             updateSystem.UpdateAt<RoadRouteToolUISystem>(SystemUpdatePhase.UIUpdate);
+            updateSystem.UpdateAfter<RoadSelectionInfoSectionSystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<RoadRouteOverlayGeometrySystem>(SystemUpdatePhase.Rendering);
             updateSystem.UpdateAt<RoadRouteHighlightSystem>(SystemUpdatePhase.Rendering);
+            RoadAggregateSystemQueryPatcher.Patch(updateSystem.World.GetOrCreateSystemManaged<AggregateSystem>());
 
             log.Info("Road Naming: systems registered");
         }

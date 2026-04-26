@@ -20,6 +20,7 @@ const DEFAULT_STATE: PanelState = {
     routeReview: null,
     routeNumberPlacement: "AfterBaseName",
     roadNameEditRouteId: null,
+    undergroundMode: false,
 };
 
 const MODES: Record<string, RouteToolMode> = {
@@ -114,6 +115,7 @@ export function parsePanelState(raw: string): PanelState {
         routeReview: parseRouteReview(parts),
         routeNumberPlacement: parts[17] === "BeforeBaseName" ? "BeforeBaseName" : "AfterBaseName",
         roadNameEditRouteId: toNumber(parts[18] ?? "0") || null,
+        undergroundMode: parts[19] === "1",
     };
 }
 
@@ -133,6 +135,7 @@ export function usePanelState(): PanelState {
             routeReview: state.routeReview?.mode ?? "None",
             routeNumberPlacement: state.routeNumberPlacement,
             roadNameEditRouteId: state.roadNameEditRouteId,
+            undergroundMode: state.undergroundMode,
             statusMessage: state.statusMessage,
         });
     }, [
@@ -146,6 +149,7 @@ export function usePanelState(): PanelState {
         state.savedRoutes.length,
         state.selectedSegments,
         state.statusMessage,
+        state.undergroundMode,
         state.waypointCount,
     ]);
 

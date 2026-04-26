@@ -7,6 +7,7 @@ using Game.Net;
 using Game.Prefabs;
 using Game.SceneFlow;
 using Game.UI;
+using RoadSignsTools.Components;
 using RoadSignsTools.Domain;
 using RoadSignsTools.Services;
 using Unity.Collections;
@@ -34,6 +35,7 @@ namespace RoadSignsTools.Systems
         private RouteDatabaseService _routeDatabase;
         private NameSystem _nameSystem;
         private EntityQuery _aggregatedRoadEdgeQuery;
+        private EntityQuery _aggregateOwnerQuery;
         private readonly List<AggregateSplitStabilityCheck> _aggregateStabilityChecks = new List<AggregateSplitStabilityCheck>();
         private bool _pendingPostLoadNameReapply;
         private int _pendingPostLoadNameReapplyDelayTicks;
@@ -62,6 +64,7 @@ namespace RoadSignsTools.Systems
             _routeDatabase = new RouteDatabaseService();
             _nameSystem = World.GetOrCreateSystemManaged<NameSystem>();
             _aggregatedRoadEdgeQuery = GetEntityQuery(ComponentType.ReadOnly<Edge>(), ComponentType.ReadOnly<Road>(), ComponentType.ReadOnly<Aggregated>());
+            _aggregateOwnerQuery = GetEntityQuery(ComponentType.ReadOnly<Aggregate>(), ComponentType.ReadWrite<AggregateElement>());
             _applyService = new RouteApplyService(_repository, _validation, _resolver, _routeCodeService, GetBaseName, SetSegmentDisplayName, message => Mod.log.Info(message));
             Mod.log.Info("SegmentMetadataSystem created");
         }
@@ -246,6 +249,7 @@ namespace RoadSignsTools.Systems
                 Mod.log.Info($"Road Naming: selected subsection assigned. SourceAggregate={sourceAggregate.Index}, NewSelectedAggregate={selectedAggregate.Index}, Edges={selectedComponents[i].Count}, AssignedName='{selectedFinalName}'.");
             }
 
+            RemoveProtectedEdgesFromUnmanagedAggregateBuffers(allAggregateEdges, selectedAggregateSet, remainderAggregateSet, operation);
             var verified = VerifyPartitionOwnership(sourceAggregate, selectedEdges, remainderEdges, selectedAggregateSet, remainderAggregateSet, selectedFinalName, originalVisibleName, operation);
             if (scheduleStabilityCheck && selectedAggregateCount > 0 && remainderAggregateCount > 0)
                 RegisterAggregateStabilityCheck(sourceAggregate, selectedEdges, remainderEdges, selectedFinalName, originalVisibleName, operation);
@@ -610,6 +614,7 @@ namespace RoadSignsTools.Systems
         // then tags things for a visual refresh without touching vanilla too hard.
         private void AssignAggregateEdges(Entity aggregate, List<Entity> edges, string operation, string role)
         {
+            MarkManagedAggregate(aggregate);
             var buffer = EntityManager.GetBuffer<AggregateElement>(aggregate);
             buffer.Clear();
             for (var i = 0; i < edges.Count; i++)
@@ -624,6 +629,7 @@ namespace RoadSignsTools.Systems
                 else
                     EntityManager.AddComponentData(edge, new Aggregated { m_Aggregate = aggregate });
 
+                MarkManagedAggregateEdge(edge);
                 EnsureRefreshTag<BatchesUpdated>(edge);
                 Mod.log.Info($"Road Naming: aggregate edge assignment. Operation={operation}, Role={role}, Edge={edge.Index}, Aggregate={aggregate.Index}, EdgeUpdatedTagSkipped=True.");
             }
@@ -631,6 +637,67 @@ namespace RoadSignsTools.Systems
             InvalidateAggregateLabelState(aggregate);
             EnsureRefreshTag<Updated>(aggregate);
             EnsureRefreshTag<BatchesUpdated>(aggregate);
+        }
+
+        // Tags aggregate owners and member edges created by this mod. The vanilla
+        // AggregateSystem query is patched to skip these edge tags.
+        private void MarkManagedAggregate(Entity aggregate)
+        {
+            if (aggregate != Entity.Null && EntityManager.Exists(aggregate) && !EntityManager.HasComponent<RoadSignsManagedAggregate>(aggregate))
+                EntityManager.AddComponent<RoadSignsManagedAggregate>(aggregate);
+        }
+
+        private void MarkManagedAggregateEdge(Entity edge)
+        {
+            if (edge != Entity.Null && EntityManager.Exists(edge) && !EntityManager.HasComponent<RoadSignsAggregateMember>(edge))
+                EntityManager.AddComponent<RoadSignsAggregateMember>(edge);
+        }
+
+        // A tagged edge must not remain in any aggregate buffer except the
+        // RoadSigns-owned aggregate that currently owns it, otherwise vanilla can
+        // still reach it indirectly through AggregateElement.
+        private void RemoveProtectedEdgesFromUnmanagedAggregateBuffers(List<Entity> protectedEdges, HashSet<Entity> selectedAggregateSet, HashSet<Entity> remainderAggregateSet, string operation)
+        {
+            if (protectedEdges.Count == 0)
+                return;
+
+            var protectedSet = new HashSet<Entity>(protectedEdges);
+            var allowedAggregates = new HashSet<Entity>(selectedAggregateSet);
+            foreach (var aggregate in remainderAggregateSet)
+                allowedAggregates.Add(aggregate);
+
+            var aggregates = _aggregateOwnerQuery.ToEntityArray(Allocator.Temp);
+            try
+            {
+                for (var aggregateIndex = 0; aggregateIndex < aggregates.Length; aggregateIndex++)
+                {
+                    var aggregate = aggregates[aggregateIndex];
+                    if (allowedAggregates.Contains(aggregate) || !EntityManager.Exists(aggregate) || !EntityManager.HasBuffer<AggregateElement>(aggregate))
+                        continue;
+
+                    var buffer = EntityManager.GetBuffer<AggregateElement>(aggregate);
+                    var removed = 0;
+                    for (var elementIndex = buffer.Length - 1; elementIndex >= 0; elementIndex--)
+                    {
+                        if (!protectedSet.Contains(buffer[elementIndex].m_Edge))
+                            continue;
+
+                        buffer.RemoveAt(elementIndex);
+                        removed++;
+                    }
+
+                    if (removed > 0)
+                    {
+                        EnsureRefreshTag<Updated>(aggregate);
+                        EnsureRefreshTag<BatchesUpdated>(aggregate);
+                        Mod.log.Warn($"Road Naming: removed protected RoadSigns edges from another aggregate buffer. Operation={operation}, Aggregate={aggregate.Index}, RemovedEdges={removed}.");
+                    }
+                }
+            }
+            finally
+            {
+                aggregates.Dispose();
+            }
         }
 
         // Breaks a set of edges into connected chunks so each isolated bit

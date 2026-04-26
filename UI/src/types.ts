@@ -60,6 +60,7 @@ export interface PanelState {
     routeReview: RouteReviewState | null;
     routeNumberPlacement: RouteNumberPlacement;
     roadNameEditRouteId: number | null;
+    undergroundMode: boolean;
 }
 
 export interface RouteReviewState {

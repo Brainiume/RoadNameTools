@@ -23,12 +23,15 @@ namespace RoadSignsTools.Systems
         private string _statusMessage;
         private bool _isRunning;
         private bool _savedRoutesViewActive;
+        private bool _undergroundMode;
         private long _roadNameEditRouteId;
         private SavedRouteReviewSession _savedRouteReview;
         private readonly System.Collections.Generic.List<Entity> _savedRoutePreviewSegments = new System.Collections.Generic.List<Entity>();
         private readonly System.Collections.Generic.List<RoadRouteWaypoint> _savedRoutePreviewWaypoints = new System.Collections.Generic.List<RoadRouteWaypoint>();
 
         public override string toolID => ToolIdentifier;
+
+        public override bool allowUnderground => true;
 
         public RoadRouteToolMode Mode => _mode;
 
@@ -39,6 +42,8 @@ namespace RoadSignsTools.Systems
         public string StatusMessage => !string.IsNullOrWhiteSpace(_statusMessage) ? _statusMessage : _selectionController?.BuildRouteInstruction() ?? string.Empty;
 
         public bool IsRunning => _isRunning;
+
+        public bool UndergroundMode => _undergroundMode;
 
         public Entity HoveredSegment => _selectionController?.HoveredSegment ?? Entity.Null;
 
@@ -88,7 +93,6 @@ namespace RoadSignsTools.Systems
             _routeNumberPlacement = RouteNumberPlacement.AfterBaseName;
             _statusMessage = "Place first waypoint on a road.";
             requireNet = Game.Net.Layer.Road;
-            allowUnderground = true;
             Mod.log.Info("RoadRouteToolSystem created");
         }
 
@@ -107,6 +111,7 @@ namespace RoadSignsTools.Systems
             base.OnStopRunning();
             EnableToolActions(false);
             _isRunning = false;
+            SetUnderground(false);
             _selectionController?.SetHovered(Entity.Null);
         }
 
@@ -123,10 +128,48 @@ namespace RoadSignsTools.Systems
         public override void InitializeRaycast()
         {
             base.InitializeRaycast();
-            m_ToolRaycastSystem.collisionMask = CollisionMask.OnGround | CollisionMask.Overground | CollisionMask.Underground;
+            m_ToolRaycastSystem.collisionMask = _undergroundMode
+                ? CollisionMask.Underground
+                : CollisionMask.OnGround | CollisionMask.Overground;
             m_ToolRaycastSystem.typeMask = TypeMask.Net;
             m_ToolRaycastSystem.netLayerMask = Game.Net.Layer.Road;
             m_ToolRaycastSystem.raycastFlags = RaycastFlags.Markers | RaycastFlags.ElevateOffset | RaycastFlags.SubElements | RaycastFlags.OutsideConnections;
+        }
+
+        public override void SetUnderground(bool isUnderground)
+        {
+            _undergroundMode = isUnderground;
+            requireUnderground = isUnderground;
+            if (m_ToolRaycastSystem != null)
+            {
+                m_ToolRaycastSystem.collisionMask = _undergroundMode
+                    ? CollisionMask.Underground
+                    : CollisionMask.OnGround | CollisionMask.Overground;
+            }
+
+            _statusMessage = _undergroundMode
+                ? "Underground road selection active."
+                : "Surface road selection active.";
+        }
+
+        public override void ElevationUp()
+        {
+            SetUnderground(false);
+        }
+
+        public override void ElevationDown()
+        {
+            SetUnderground(true);
+        }
+
+        public override void ElevationScroll()
+        {
+            SetUnderground(!_undergroundMode);
+        }
+
+        public void SetUndergroundMode(bool enabled)
+        {
+            SetUnderground(enabled);
         }
 
         public void SetMode(RoadRouteToolMode mode)

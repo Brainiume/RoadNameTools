@@ -72,6 +72,7 @@ namespace RoadSignsTools.Systems
             AddBinding(new TriggerBinding<string>(PanelBindingGroup, "setMode", SetMode, ValueReaders.Create<string>()));
             AddBinding(new TriggerBinding<string>(PanelBindingGroup, "setInput", SetInput, ValueReaders.Create<string>()));
             AddBinding(new TriggerBinding<string>(PanelBindingGroup, "setRouteNumberPlacement", SetRouteNumberPlacement, ValueReaders.Create<string>()));
+            AddBinding(new TriggerBinding<bool>(PanelBindingGroup, "setUndergroundMode", SetUndergroundMode, ValueReaders.Create<bool>()));
             Mod.log.Info("RoadRouteToolUISystem bindings registered");
         }
 
@@ -355,6 +356,12 @@ namespace RoadSignsTools.Systems
             _toolSystem?.SetRouteNumberPlacement(placement);
         }
 
+        private void SetUndergroundMode(bool enabled)
+        {
+            Mod.log.Info($"Road Naming: SetUndergroundMode received. Enabled={enabled}.");
+            _toolSystem?.SetUndergroundMode(enabled);
+        }
+
         private string BuildState(bool gameplayAvailable, bool showLauncher)
         {
             try
@@ -395,7 +402,8 @@ namespace RoadSignsTools.Systems
                     Escape((_toolSystem?.ReviewWaypointCount ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture)),
                     Escape(_toolSystem?.SavedRouteReview != null ? _toolSystem.SavedRouteReview.Message ?? string.Empty : string.Empty),
                     Escape((_toolSystem?.RouteNumberPlacement ?? RouteNumberPlacement.AfterBaseName).ToString()),
-                    Escape((_toolSystem?.RoadNameEditRouteId ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    Escape((_toolSystem?.RoadNameEditRouteId ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                    Escape(_toolSystem?.UndergroundMode == true ? "1" : "0")
                 });
             }
             catch (Exception ex)
@@ -427,6 +435,7 @@ namespace RoadSignsTools.Systems
                 Escape("0"),
                 Escape(string.Empty),
                 Escape(RouteNumberPlacement.AfterBaseName.ToString()),
+                Escape("0"),
                 Escape("0")
             });
         }
