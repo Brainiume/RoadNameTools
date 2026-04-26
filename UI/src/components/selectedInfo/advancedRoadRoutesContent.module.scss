@@ -1,0 +1,265 @@
+.content {
+    display: flex;
+    flex-direction: column;
+    padding: 0 32rem 28rem;
+}
+
+.textInput {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 32rem;
+    min-height: 32rem;
+    max-height: 32rem;
+    padding: 0 8rem;
+    margin: 0;
+    box-sizing: border-box;
+    border: 1rem solid rgba(166, 190, 201, 0.78);
+    border-radius: 5rem;
+    color: rgb(236, 237, 237);
+    background-color: rgba(4, 14, 22, 0.42);
+    font-size: var(--fontSizeS);
+    line-height: 30rem;
+    text-align: center;
+    outline: none;
+}
+
+.textInput:hover {
+    border-color: rgba(206, 226, 235, 0.9);
+    background-color: rgba(4, 14, 22, 0.52);
+}
+
+.textInput:focus {
+    height: 32rem;
+    min-height: 32rem;
+    max-height: 32rem;
+    border-color: rgba(67, 202, 247, 0.95);
+    background-color: rgba(4, 14, 22, 0.6);
+}
+
+.divider {
+    height: 1rem;
+    margin: 0 -16rem;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.routeFoldouts {
+    display: flex;
+    flex-direction: column;
+    margin: 0 -32rem;
+    padding: 8rem 0;
+    box-sizing: border-box;
+}
+
+.routePanelRow {
+    min-height: 38rem;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.controlOnlyRow {
+    justify-content: flex-start;
+}
+
+.inlineActionButton {
+    flex: 0 0 88rem;
+    width: 88rem;
+    min-width: 88rem;
+    height: 32rem;
+    min-height: 32rem;
+    max-height: 32rem;
+    padding: 0 8rem;
+    margin: 0;
+    border: none;
+    border-radius: 5rem;
+    color: rgba(255, 255, 255, 0.92);
+    background-color: rgba(0, 0, 0, 0.72);
+    font-size: var(--fontSizeS);
+    font-weight: 600;
+    line-height: 32rem;
+    text-align: center;
+    white-space: nowrap;
+    transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.inlineActionCell {
+    flex: 0 0 88rem;
+    display: flex;
+    min-width: 88rem;
+    margin-right: 8rem;
+}
+
+.inlineActionCell .inlineActionButton {
+    width: 88rem;
+}
+
+.inlineActionButton:hover {
+    color: #fff;
+    background-color: rgba(12, 26, 34, 0.9);
+}
+
+.sectionInputLine {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 230rem;
+}
+
+.sectionTextInput {
+    width: 230rem;
+}
+
+.routeButtonRow {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-end;
+    width: 230rem;
+}
+
+.routeButtonCell {
+    flex: 1 1 0;
+    display: flex;
+    min-width: 0;
+}
+
+.routeButtonCell + .routeButtonCell {
+    margin-left: 5rem;
+}
+
+.prefixButtonRow {
+    width: 374rem;
+    justify-content: flex-start;
+}
+
+.positionButtonRow {
+    width: auto;
+    justify-content: flex-start;
+}
+
+.routeChoiceButton {
+    flex: 1 1 0;
+    min-width: 38rem;
+    height: 28rem;
+    padding: 0 7rem;
+    margin: 0;
+    border: none;
+    border-radius: 4rem;
+    color: rgba(255, 255, 255, 0.92);
+    background-color: rgba(4, 14, 22, 0.68);
+    font-size: var(--fontSizeS);
+    font-weight: 700;
+    line-height: 28rem;
+    text-align: center;
+    white-space: nowrap;
+    transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.routeButtonCell .routeChoiceButton {
+    width: 100%;
+    max-width: 100%;
+}
+
+.routeChoiceButton:hover {
+    color: #fff;
+    background-color: rgba(12, 26, 34, 0.9);
+}
+
+.routeChoiceButton.active {
+    color: #fff;
+    background-color: rgba(0, 120, 191, 0.72);
+}
+
+.prefixButtonRow .routeButtonCell {
+    flex: 0 0 38rem;
+}
+
+.prefixButtonRow .routeButtonCellWide {
+    flex: 0 0 116rem;
+}
+
+.prefixButtonRow .routeButtonCellWide .routeChoiceButton {
+    min-width: 116rem;
+}
+
+.positionButtonRow .routeButtonCell {
+    flex: 0 0 88rem;
+}
+
+.positionButtonRow .routeButtonCell + .routeButtonCell {
+    margin-left: 8rem;
+}
+
+.positionButtonRow .routeChoiceButton {
+    min-width: 88rem;
+}
+
+.resultText {
+    width: 230rem;
+    color: rgb(236, 237, 237);
+    font-size: var(--fontSizeS);
+    font-weight: 600;
+    line-height: 28rem;
+    text-align: right;
+}
+
+.actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: center;
+    width: 100%;
+    padding: 15rem 0;
+    box-sizing: border-box;
+}
+
+.actionButtonCell {
+    flex: 0 0 110rem;
+    display: flex;
+    min-width: 110rem;
+    max-width: 110rem;
+}
+
+.actionButtonCell + .actionButtonCell {
+    margin-left: 8rem;
+}
+
+.actionButton {
+    flex: 0 0 110rem;
+    width: 110rem;
+    min-width: 110rem;
+    max-width: 110rem;
+    height: 32rem;
+    min-height: 32rem;
+    max-height: 32rem;
+    padding: 0 5rem;
+    margin: 1px;
+    border: none;
+    border-radius: 3rem;
+    color: rgba(255, 255, 255, 0.92);
+    background-color: rgba(0, 0, 0, 0.72);
+    font-size: var(--fontSizeS);
+    font-weight: 500;
+    line-height: 32rem;
+    text-align: center;
+    white-space: nowrap;
+    transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.actionButtonCell .actionButton {
+    width: 110rem;
+}
+
+.actionButton:hover {
+    color: #fff;
+    background-color: rgba(12, 26, 34, 0.9);
+}
+
+.actionButton:disabled {
+    color: rgba(255, 255, 255, 0.58);
+    background-color: rgba(0, 0, 0, 0.58);
+    opacity: 0.78;
+}

@@ -11,11 +11,20 @@ export const nativePanelOpen$ = GAME_BINDINGS.PANEL_OPEN.binding;
 export const nativeInGame$ = GAME_BINDINGS.IN_GAME.binding;
 export const nativeShowLauncher$ = GAME_BINDINGS.SHOW_LAUNCHER.binding;
 export const advancedRoadNamingPanelOpen$ = bindLocalValue(false);
+export const advancedRoadNamingPanelKind$ = bindLocalValue<"rename" | "routes">("rename");
 
 export function openAdvancedRoadNamingPanel() {
+    advancedRoadNamingPanelKind$.update("rename");
     advancedRoadNamingPanelOpen$.update(true);
     panelActions.activate();
     panelActions.setMode("rename");
+}
+
+export function openAdvancedRoadRoutesPanel() {
+    advancedRoadNamingPanelKind$.update("routes");
+    advancedRoadNamingPanelOpen$.update(true);
+    panelActions.activate();
+    panelActions.setMode("assign");
 }
 
 export function closeAdvancedRoadNamingPanel() {

@@ -1,7 +1,7 @@
 import { trigger } from "cs2/api";
 import { FocusDisabled } from "cs2/input";
 import { PanelSection, PanelSectionRow } from "cs2/ui";
-import { openAdvancedRoadNamingPanel } from "bindings";
+import { openAdvancedRoadNamingPanel, openAdvancedRoadRoutesPanel } from "bindings";
 import { ICON_SRC, NATIVE_GROUP } from "constants";
 import { VC, VF } from "components/vanilla/Components";
 import styles from "./roadSelectionInfoSection.module.scss";
@@ -45,7 +45,10 @@ function RoadSelectionInfoSection(props: RoadSelectionInfoSectionProps) {
                                     focusKey={VF.FOCUS_AUTO}
                                     src="coui://rst/Route.svg"
                                     tooltip="Major Route Creation"
-                                    onSelect={() => click("routeNumber")}
+                                    onSelect={() => {
+                                        click("routeNumber");
+                                        openAdvancedRoadRoutesPanel();
+                                    }}
                                 />
                             </div>
                         </FocusDisabled>

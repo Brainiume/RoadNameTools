@@ -1,0 +1,22 @@
+.panelStack {
+    position: absolute;
+    top: 66rem;
+    left: 6rem;
+    width: 410rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    pointer-events: none;
+    z-index: calc(var(--tooltipIndex) - 3);
+}
+
+.panel {
+    position: relative;
+    width: 410rem;
+    max-height: calc(100vh - 52rem);
+    pointer-events: auto;
+}
+
+.body {
+    padding: 0;
+}

@@ -1,26 +1,3 @@
-.panelStack {
-    position: absolute;
-    top: 66rem;
-    left: 6rem;
-    width: 410rem;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    pointer-events: none;
-    z-index: calc(var(--tooltipIndex) - 3);
-}
-
-.panel {
-    position: relative;
-    width: 410rem;
-    max-height: calc(100vh - 52rem);
-    pointer-events: auto;
-}
-
-.body {
-    padding: 0;
-}
-
 .content {
     display: flex;
     flex-direction: column;
@@ -100,9 +77,19 @@
     align-items: stretch;
     justify-content: center;
     width: 100%;
-    padding: 10rem 0 0;
-    padding-bottom: 10rem;
+    padding: 10rem 0;
     box-sizing: border-box;
+}
+
+.actionButtonCell {
+    flex: 0 0 110rem;
+    display: flex;
+    min-width: 110rem;
+    max-width: 110rem;
+}
+
+.actionButtonCell + .actionButtonCell {
+    margin-left: 8rem;
 }
 
 .actionButton {
@@ -127,8 +114,8 @@
     transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
 }
 
-.actionButton + .actionButton {
-    margin-left: 8rem;
+.actionButtonCell .actionButton {
+    width: 110rem;
 }
 
 .actionButton:hover {
