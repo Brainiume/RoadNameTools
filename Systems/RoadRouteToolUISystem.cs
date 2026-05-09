@@ -120,7 +120,7 @@ namespace RoadSignsTools.Systems
 
         private void SetPanelOpen(bool value)
         {
-            Mod.log.Info($"Road Naming: native launcher requested panel open={value}.");
+            Mod.log.Info(() => $"Road Naming: native launcher requested panel open={value}.");
             if (value)
                 ActivateTool();
             else
@@ -218,7 +218,7 @@ namespace RoadSignsTools.Systems
             }
 
             var segmentCount = _toolSystem?.SelectedSegments?.Count ?? 0;
-            Mod.log.Info($"Road Naming: Apply clicked. Mode={_toolSystem?.Mode}, Input='{_toolSystem?.InputText ?? string.Empty}', CommittedSegments={segmentCount}.");
+            Mod.log.Info(() => $"Road Naming: Apply clicked. Mode={_toolSystem?.Mode}, Input='{_toolSystem?.InputText ?? string.Empty}', CommittedSegments={segmentCount}.");
             _toolSystem?.Apply();
         }
 
@@ -236,42 +236,42 @@ namespace RoadSignsTools.Systems
 
         private void PreviewRoute(string routeId)
         {
-            Mod.log.Info($"Road Naming: saved route Preview clicked. RouteId={routeId}.");
+            Mod.log.Info(() => $"Road Naming: saved route Preview clicked. RouteId={routeId}.");
             if (TryParseRouteId(routeId, out var id))
                 _toolSystem?.PreviewSavedRoute(id);
         }
 
         private void ReapplyRoute(string routeId)
         {
-            Mod.log.Info($"Road Naming: saved route Reapply clicked. RouteId={routeId}.");
+            Mod.log.Info(() => $"Road Naming: saved route Reapply clicked. RouteId={routeId}.");
             if (TryParseRouteId(routeId, out var id))
                 _toolSystem?.ReapplySavedRoute(id);
         }
 
         private void DeleteRoute(string routeId)
         {
-            Mod.log.Info($"Road Naming: saved route Delete clicked. RouteId={routeId}.");
+            Mod.log.Info(() => $"Road Naming: saved route Delete clicked. RouteId={routeId}.");
             if (TryParseRouteId(routeId, out var id))
                 _toolSystem?.DeleteSavedRoute(id);
         }
 
         private void RebuildRoute(string routeId)
         {
-            Mod.log.Info($"Road Naming: saved route Rebuild clicked. RouteId={routeId}.");
+            Mod.log.Info(() => $"Road Naming: saved route Rebuild clicked. RouteId={routeId}.");
             if (TryParseRouteId(routeId, out var id))
                 _toolSystem?.BeginRebuildSavedRoute(id);
         }
 
         private void ModifyRoute(string routeId)
         {
-            Mod.log.Info($"Road Naming: saved route Modify clicked. RouteId={routeId}.");
+            Mod.log.Info(() => $"Road Naming: saved route Modify clicked. RouteId={routeId}.");
             if (TryParseRouteId(routeId, out var id))
                 _toolSystem?.BeginModifySavedRoute(id);
         }
 
         private void EditRouteRoadNames(string routeId)
         {
-            Mod.log.Info($"Road Naming: saved route Edit Roads clicked. RouteId={routeId}.");
+            Mod.log.Info(() => $"Road Naming: saved route Edit Roads clicked. RouteId={routeId}.");
             if (TryParseRouteId(routeId, out var id))
             {
                 if (_toolSystem?.BeginSavedRouteRoadNameEdit(id) == true && _gameToolSystem != null && _defaultToolSystem != null)
@@ -288,21 +288,21 @@ namespace RoadSignsTools.Systems
 
         private void AcceptRouteReview(string routeId)
         {
-            Mod.log.Info($"Road Naming: saved route review Accept clicked. RouteId={routeId}.");
+            Mod.log.Info(() => $"Road Naming: saved route review Accept clicked. RouteId={routeId}.");
             if (TryParseRouteId(routeId, out var id))
                 _toolSystem?.AcceptSavedRouteReview(id);
         }
 
         private void CancelRouteReview(string routeId)
         {
-            Mod.log.Info($"Road Naming: saved route review Cancel clicked. RouteId={routeId}.");
+            Mod.log.Info(() => $"Road Naming: saved route review Cancel clicked. RouteId={routeId}.");
             if (TryParseRouteId(routeId, out var id))
                 _toolSystem?.CancelSavedRouteReview(id);
         }
 
         private void RenameRoute(string payload)
         {
-            Mod.log.Info($"Road Naming: saved route Rename clicked. Payload='{payload ?? string.Empty}'.");
+            Mod.log.Info(() => $"Road Naming: saved route Rename clicked. Payload='{payload ?? string.Empty}'.");
             var separator = (payload ?? string.Empty).IndexOf('|');
             if (separator <= 0)
                 return;
@@ -313,7 +313,7 @@ namespace RoadSignsTools.Systems
 
         private void UpdateRouteInput(string payload)
         {
-            Mod.log.Info($"Road Naming: saved route Update Input clicked. Payload='{payload ?? string.Empty}'.");
+            Mod.log.Info(() => $"Road Naming: saved route Update Input clicked. Payload='{payload ?? string.Empty}'.");
             var separator = (payload ?? string.Empty).IndexOf('|');
             if (separator <= 0)
                 return;
@@ -329,7 +329,7 @@ namespace RoadSignsTools.Systems
 
         private void SetMode(string mode)
         {
-            Mod.log.Info($"Road Naming: SetMode received. Mode='{mode ?? string.Empty}'.");
+            Mod.log.Info(() => $"Road Naming: SetMode received. Mode='{mode ?? string.Empty}'.");
             if (_toolSystem == null)
                 return;
 
@@ -343,13 +343,13 @@ namespace RoadSignsTools.Systems
 
         private void SetInput(string value)
         {
-            Mod.log.Info($"Road Naming: SetInput received. Value='{value ?? string.Empty}'.");
+            Mod.log.Info(() => $"Road Naming: SetInput received. Value='{value ?? string.Empty}'.");
             _toolSystem?.SetInputText(value);
         }
 
         private void SetRouteNumberPlacement(string value)
         {
-            Mod.log.Info($"Road Naming: SetRouteNumberPlacement received. Value='{value ?? string.Empty}'.");
+            Mod.log.Info(() => $"Road Naming: SetRouteNumberPlacement received. Value='{value ?? string.Empty}'.");
             var placement = string.Equals(value, RouteNumberPlacement.BeforeBaseName.ToString(), StringComparison.OrdinalIgnoreCase)
                 ? RouteNumberPlacement.BeforeBaseName
                 : RouteNumberPlacement.AfterBaseName;
@@ -358,7 +358,7 @@ namespace RoadSignsTools.Systems
 
         private void SetUndergroundMode(bool enabled)
         {
-            Mod.log.Info($"Road Naming: SetUndergroundMode received. Enabled={enabled}.");
+            Mod.log.Info(() => $"Road Naming: SetUndergroundMode received. Enabled={enabled}.");
             _toolSystem?.SetUndergroundMode(enabled);
         }
 
@@ -379,7 +379,7 @@ namespace RoadSignsTools.Systems
                 }
                 catch (Exception ex)
                 {
-                    Mod.log.Warn($"Road Naming: Saved Routes JSON build failed during UI state update. Error='{ex.Message}'.");
+                    Mod.log.Warn(() => $"Road Naming: Saved Routes JSON build failed during UI state update. Error='{ex.Message}'.");
                 }
 
                 return string.Join("|", new[]
@@ -408,7 +408,7 @@ namespace RoadSignsTools.Systems
             }
             catch (Exception ex)
             {
-                Mod.log.Warn($"Road Naming: UI state build failed; using last known state. Error='{ex.Message}'.");
+                Mod.log.Warn(() => $"Road Naming: UI state build failed; using last known state. Error='{ex.Message}'.");
                 return _lastState ?? BuildClosedState(false, true);
             }
         }
@@ -454,14 +454,14 @@ namespace RoadSignsTools.Systems
             {
                 _inGameBinding.Update(gameplayAvailable);
                 _lastInGameBinding = gameplayAvailable;
-                Mod.log.Info($"Road Naming: native launcher IN_GAME binding updated to {gameplayAvailable}.");
+                Mod.log.Info(() => $"Road Naming: native launcher IN_GAME binding updated to {gameplayAvailable}.");
             }
 
             if (showLauncher != _lastShowLauncher)
             {
                 _showLauncherBinding.Update(showLauncher);
                 _lastShowLauncher = showLauncher;
-                Mod.log.Info($"Road Naming: native launcher SHOW_LAUNCHER binding updated to {showLauncher}.");
+                Mod.log.Info(() => $"Road Naming: native launcher SHOW_LAUNCHER binding updated to {showLauncher}.");
             }
         }
 

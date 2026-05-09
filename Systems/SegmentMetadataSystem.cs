@@ -25,6 +25,7 @@ namespace RoadSignsTools.Systems
         private const int DeferredNameReapplyDelayTicks = 5;
         private const int DeferredNameReapplyRetryDelayTicks = 10;
         private const int DeferredNameReapplyMaxAttempts = 10;
+        private const int ProtectedAggregateBufferCleanupIntervalTicks = 10;
         private const float RebuildCandidateOverlapThreshold = 0.8f;
 
         private SegmentMetadataRepository _repository;
@@ -36,11 +37,15 @@ namespace RoadSignsTools.Systems
         private NameSystem _nameSystem;
         private EntityQuery _aggregatedRoadEdgeQuery;
         private EntityQuery _aggregateOwnerQuery;
+        private EntityQuery _managedAggregateOwnerQuery;
+        private EntityQuery _updatedAggregateOwnerQuery;
+        private EntityQuery _roadSignsAggregateMemberQuery;
         private readonly List<AggregateSplitStabilityCheck> _aggregateStabilityChecks = new List<AggregateSplitStabilityCheck>();
         private bool _pendingPostLoadNameReapply;
         private int _pendingPostLoadNameReapplyDelayTicks;
         private int _pendingPostLoadNameReapplyAttempts;
         private bool _pendingPostLoadNameReapplyWaitingLogged;
+        private int _protectedAggregateBufferCleanupTicks;
 
         public SegmentMetadataRepository Repository => _repository;
 
@@ -65,6 +70,9 @@ namespace RoadSignsTools.Systems
             _nameSystem = World.GetOrCreateSystemManaged<NameSystem>();
             _aggregatedRoadEdgeQuery = GetEntityQuery(ComponentType.ReadOnly<Edge>(), ComponentType.ReadOnly<Road>(), ComponentType.ReadOnly<Aggregated>());
             _aggregateOwnerQuery = GetEntityQuery(ComponentType.ReadOnly<Aggregate>(), ComponentType.ReadWrite<AggregateElement>());
+            _managedAggregateOwnerQuery = GetEntityQuery(ComponentType.ReadOnly<Aggregate>(), ComponentType.ReadOnly<RoadSignsManagedAggregate>(), ComponentType.ReadWrite<AggregateElement>());
+            _updatedAggregateOwnerQuery = GetEntityQuery(ComponentType.ReadOnly<Aggregate>(), ComponentType.ReadOnly<AggregateElement>(), ComponentType.ReadOnly<Updated>());
+            _roadSignsAggregateMemberQuery = GetEntityQuery(ComponentType.ReadOnly<Edge>(), ComponentType.ReadOnly<Road>(), ComponentType.ReadOnly<RoadSignsAggregateMember>());
             _applyService = new RouteApplyService(_repository, _validation, _resolver, _routeCodeService, GetBaseName, SetSegmentDisplayName, message => Mod.log.Info(message));
             Mod.log.Info("SegmentMetadataSystem created");
         }
@@ -77,6 +85,7 @@ namespace RoadSignsTools.Systems
         {
             ProcessDeferredPostLoadNameReapply();
             UpdateAggregateStabilityChecks();
+            CleanupProtectedAggregateBuffersIfDue();
         }
         
         // gets Apply Service to apply the given new road name to the provided segments. 
@@ -170,7 +179,7 @@ namespace RoadSignsTools.Systems
 
                 if (!_repository.TryGet(firstSegment, out var metadata))
                 {
-                    Mod.log.Warn($"Could not find metadata for visible-name update. Operation={operation}, Segment={firstSegment.Index}, NameEntity={nameEntity.Index}.");
+                    Mod.log.Warn(() => $"Could not find metadata for visible-name update. Operation={operation}, Segment={firstSegment.Index}, NameEntity={nameEntity.Index}.");
                     continue;
                 }
 
@@ -179,7 +188,7 @@ namespace RoadSignsTools.Systems
                 {
                     var originalVisibleName = GetCurrentAuthoritativeName(nameEntity, metadata.BaseNameSnapshot ?? GetBaseName(firstSegment));
                     if (!TryPartitionAggregateForSelectedEdges(nameEntity, routeSegmentsInGroup, selectedSet, operation, finalName, originalVisibleName))
-                        Mod.log.Warn($"Aggregate partition failed. Operation={operation}, Aggregate={nameEntity.Index}, SelectedEdgesInAggregate={routeSegmentsInGroup.Count}, TotalAggregateEdges={totalAggregateEdges.Count}. Segment metadata remains updated, but vanilla visible naming may remain cooked or unchanged.");
+                        Mod.log.Warn(() => $"Aggregate partition failed. Operation={operation}, Aggregate={nameEntity.Index}, SelectedEdgesInAggregate={routeSegmentsInGroup.Count}, TotalAggregateEdges={totalAggregateEdges.Count}. Segment metadata remains updated, but vanilla visible naming may remain cooked or unchanged.");
                     continue;
                 }
 
@@ -215,7 +224,7 @@ namespace RoadSignsTools.Systems
 
             var selectedComponents = BuildConnectedEdgeComponents(selectedEdges);
             var remainderComponents = BuildConnectedEdgeComponents(remainderEdges);
-            Mod.log.Info($"Road Naming: aggregate partition. Operation={operation}, Aggregate={sourceAggregate.Index}, Selected={selectedEdges.Count}, Remainder={remainderEdges.Count}, SelectedComponents={selectedComponents.Count}, RemainderComponents={remainderComponents.Count}, OriginalVisibleName='{originalVisibleName}', SelectedVisibleName='{selectedFinalName}'.");
+            Mod.log.Info(() => $"Road Naming: aggregate partition. Operation={operation}, Aggregate={sourceAggregate.Index}, Selected={selectedEdges.Count}, Remainder={remainderEdges.Count}, SelectedComponents={selectedComponents.Count}, RemainderComponents={remainderComponents.Count}, OriginalVisibleName='{originalVisibleName}', SelectedVisibleName='{selectedFinalName}'.");
 
             var sourceAssigned = false;
             var remainderAggregateCount = 0;
@@ -231,7 +240,7 @@ namespace RoadSignsTools.Systems
                 remainderAggregateSet.Add(remainderAggregate);
                 AssignAggregateEdges(remainderAggregate, remainderComponents[i], operation, "Remainder");
                 SetAuthoritativeName(remainderAggregate, originalVisibleName, operation, "RemainderAggregate", remainderComponents[i].Count, allAggregateEdges.Count);
-                Mod.log.Info($"Road Naming: remainder preserved. SourceAggregate={sourceAggregate.Index}, RemainderAggregate={remainderAggregate.Index}, Edges={remainderComponents[i].Count}, RetainedName='{originalVisibleName}'.");
+                Mod.log.Info(() => $"Road Naming: remainder preserved. SourceAggregate={sourceAggregate.Index}, RemainderAggregate={remainderAggregate.Index}, Edges={remainderComponents[i].Count}, RetainedName='{originalVisibleName}'.");
             }
 
             var selectedAggregateCount = 0;
@@ -246,15 +255,15 @@ namespace RoadSignsTools.Systems
                 selectedAggregateSet.Add(selectedAggregate);
                 AssignAggregateEdges(selectedAggregate, selectedComponents[i], operation, "Selected");
                 SetAuthoritativeName(selectedAggregate, selectedFinalName, operation, "SelectedAggregate", selectedComponents[i].Count, selectedEdges.Count);
-                Mod.log.Info($"Road Naming: selected subsection assigned. SourceAggregate={sourceAggregate.Index}, NewSelectedAggregate={selectedAggregate.Index}, Edges={selectedComponents[i].Count}, AssignedName='{selectedFinalName}'.");
+                Mod.log.Info(() => $"Road Naming: selected subsection assigned. SourceAggregate={sourceAggregate.Index}, NewSelectedAggregate={selectedAggregate.Index}, Edges={selectedComponents[i].Count}, AssignedName='{selectedFinalName}'.");
             }
 
-            RemoveProtectedEdgesFromUnmanagedAggregateBuffers(allAggregateEdges, selectedAggregateSet, remainderAggregateSet, operation);
+            RemoveProtectedEdgesFromUnmanagedAggregateBuffers(allAggregateEdges, operation);
             var verified = VerifyPartitionOwnership(sourceAggregate, selectedEdges, remainderEdges, selectedAggregateSet, remainderAggregateSet, selectedFinalName, originalVisibleName, operation);
             if (scheduleStabilityCheck && selectedAggregateCount > 0 && remainderAggregateCount > 0)
                 RegisterAggregateStabilityCheck(sourceAggregate, selectedEdges, remainderEdges, selectedFinalName, originalVisibleName, operation);
 
-            Mod.log.Info($"Road Naming: aggregate partition complete. Operation={operation}, SourceAggregate={sourceAggregate.Index}, SelectedAggregatesCreated={selectedAggregateCount}, RemainderAggregates={remainderAggregateCount}, OwnershipVerified={verified}.");
+            Mod.log.Info(() => $"Road Naming: aggregate partition complete. Operation={operation}, SourceAggregate={sourceAggregate.Index}, SelectedAggregatesCreated={selectedAggregateCount}, RemainderAggregates={remainderAggregateCount}, OwnershipVerified={verified}.");
             return selectedAggregateCount > 0 && remainderAggregateCount > 0 && verified;
         }
 
@@ -271,7 +280,7 @@ namespace RoadSignsTools.Systems
                 if (!selectedAggregateSet.Contains(owner) || !string.Equals(ownerName, selectedFinalName, System.StringComparison.Ordinal))
                 {
                     ok = false;
-                    Mod.log.Warn($"Road Naming: selected ownership check failed. Operation={operation}, Edge={edge.Index}, Owner={owner.Index}, OwnerName='{ownerName}', ExpectedName='{selectedFinalName}', SourceAggregate={sourceAggregate.Index}.");
+                    Mod.log.Warn(() => $"Road Naming: selected ownership check failed. Operation={operation}, Edge={edge.Index}, Owner={owner.Index}, OwnerName='{ownerName}', ExpectedName='{selectedFinalName}', SourceAggregate={sourceAggregate.Index}.");
                 }
             }
 
@@ -283,12 +292,12 @@ namespace RoadSignsTools.Systems
                 if (!remainderAggregateSet.Contains(owner) || !string.Equals(ownerName, originalVisibleName, System.StringComparison.Ordinal))
                 {
                     ok = false;
-                    Mod.log.Warn($"Remainder ownership check failed. Operation={operation}, Edge={edge.Index}, Owner={owner.Index}, OwnerName='{ownerName}', ExpectedRetainedName='{originalVisibleName}', SourceAggregate={sourceAggregate.Index}.");
+                    Mod.log.Warn(() => $"Remainder ownership check failed. Operation={operation}, Edge={edge.Index}, Owner={owner.Index}, OwnerName='{ownerName}', ExpectedRetainedName='{originalVisibleName}', SourceAggregate={sourceAggregate.Index}.");
                 }
             }
 
             if (ok)
-                Mod.log.Info($"Aggregate partition ownership verified. Operation={operation}, SourceAggregate={sourceAggregate.Index}, SelectedEdges={selectedEdges.Count}, RemainderEdges={remainderEdges.Count}.");
+                Mod.log.Info(() => $"Aggregate partition ownership verified. Operation={operation}, SourceAggregate={sourceAggregate.Index}, SelectedEdges={selectedEdges.Count}, RemainderEdges={remainderEdges.Count}.");
 
             return ok;
         }
@@ -323,7 +332,7 @@ namespace RoadSignsTools.Systems
             check.SelectedEdges.AddRange(selectedEdges);
             check.RemainderEdges.AddRange(remainderEdges);
             _aggregateStabilityChecks.Add(check);
-            Mod.log.Info($"Aggregate stability check scheduled. Operation={operation}, SourceAggregate={sourceAggregate.Index}, SelectedEdges={selectedEdges.Count}, RemainderEdges={remainderEdges.Count}, FirstCheckInTicks={AggregateStabilityInitialDelayTicks}, ReapplyAttempts={AggregateStabilityMaxReapplyAttempts}.");
+            Mod.log.Info(() => $"Aggregate stability check scheduled. Operation={operation}, SourceAggregate={sourceAggregate.Index}, SelectedEdges={selectedEdges.Count}, RemainderEdges={remainderEdges.Count}, FirstCheckInTicks={AggregateStabilityInitialDelayTicks}, ReapplyAttempts={AggregateStabilityMaxReapplyAttempts}.");
         }
 
         // Monitors the created jobs &  removes dead ones, 
@@ -342,7 +351,7 @@ namespace RoadSignsTools.Systems
 
                 if (!HasAnyValidRoadEdge(check.SelectedEdges))
                 {
-                    Mod.log.Warn($"Aggregate stability check removed because selected edges no longer exist. Operation={check.Operation}, SourceAggregate={check.SourceAggregate.Index}.");
+                    Mod.log.Warn(() => $"Aggregate stability check removed because selected edges no longer exist. Operation={check.Operation}, SourceAggregate={check.SourceAggregate.Index}.");
                     _aggregateStabilityChecks.RemoveAt(i);
                     continue;
                 }
@@ -353,7 +362,7 @@ namespace RoadSignsTools.Systems
                     check.StableChecks++;
                     if (check.StableChecks >= AggregateStabilityStableChecksRequired)
                     {
-                        Mod.log.Info($"Aggregate stability confirmed. Operation={check.Operation}, SourceAggregate={check.SourceAggregate.Index}, StableChecks={check.StableChecks}.");
+                        Mod.log.Info(() => $"Aggregate stability confirmed. Operation={check.Operation}, SourceAggregate={check.SourceAggregate.Index}, StableChecks={check.StableChecks}.");
                         _aggregateStabilityChecks.RemoveAt(i);
                     }
                     else
@@ -367,13 +376,13 @@ namespace RoadSignsTools.Systems
                 check.StableChecks = 0;
                 if (check.ReapplyAttemptsRemaining <= 0)
                 {
-                    Mod.log.Warn($"Road Naming: aggregate stability could not be restored. Operation={check.Operation}, SourceAggregate={check.SourceAggregate.Index}, SelectedFinalName='{check.SelectedFinalName}', OriginalVisibleName='{check.OriginalVisibleName}'.");
+                    Mod.log.Warn(() => $"Road Naming: aggregate stability could not be restored. Operation={check.Operation}, SourceAggregate={check.SourceAggregate.Index}, SelectedFinalName='{check.SelectedFinalName}', OriginalVisibleName='{check.OriginalVisibleName}'.");
                     _aggregateStabilityChecks.RemoveAt(i);
                     continue;
                 }
 
                 check.ReapplyAttemptsRemaining--;
-                Mod.log.Warn($"Road Naming: detected aggregate merge/recompute after apply; reapplying split. Operation={check.Operation}, SourceAggregate={check.SourceAggregate.Index}, AttemptsRemaining={check.ReapplyAttemptsRemaining}.");
+                Mod.log.Warn(() => $"Road Naming: detected aggregate merge/recompute after apply; reapplying split. Operation={check.Operation}, SourceAggregate={check.SourceAggregate.Index}, AttemptsRemaining={check.ReapplyAttemptsRemaining}.");
                 ReapplyAggregateStabilityCheck(check);
                 check.TicksUntilNextCheck = AggregateStabilityRetryDelayTicks;
             }
@@ -404,7 +413,7 @@ namespace RoadSignsTools.Systems
                 if (owner == Entity.Null || !string.Equals(ownerName, check.SelectedFinalName, System.StringComparison.Ordinal))
                 {
                     ok = false;
-                    Mod.log.Warn($"Aggregate stability selected-edge mismatch. Phase={phase}, Operation={check.Operation}, Edge={edge.Index}, Owner={owner.Index}, OwnerName='{ownerName}', ExpectedSelectedName='{check.SelectedFinalName}'.");
+                    Mod.log.Warn(() => $"Aggregate stability selected-edge mismatch. Phase={phase}, Operation={check.Operation}, Edge={edge.Index}, Owner={owner.Index}, OwnerName='{ownerName}', ExpectedSelectedName='{check.SelectedFinalName}'.");
                 }
             }
 
@@ -421,7 +430,7 @@ namespace RoadSignsTools.Systems
                 if (owner == Entity.Null || selectedOwners.Contains(owner) || string.Equals(ownerName, check.SelectedFinalName, System.StringComparison.Ordinal) || !string.Equals(ownerName, check.OriginalVisibleName, System.StringComparison.Ordinal))
                 {
                     ok = false;
-                    Mod.log.Warn($"Aggregate stability remainder-edge mismatch. Phase={phase}, Operation={check.Operation}, Edge={edge.Index}, Owner={owner.Index}, OwnerName='{ownerName}', ExpectedRetainedName='{check.OriginalVisibleName}', SelectedFinalName='{check.SelectedFinalName}'.");
+                    Mod.log.Warn(() => $"Aggregate stability remainder-edge mismatch. Phase={phase}, Operation={check.Operation}, Edge={edge.Index}, Owner={owner.Index}, OwnerName='{ownerName}', ExpectedRetainedName='{check.OriginalVisibleName}', SelectedFinalName='{check.SelectedFinalName}'.");
                 }
             }
 
@@ -430,12 +439,13 @@ namespace RoadSignsTools.Systems
                 if (owner == Entity.Null || !EntityManager.Exists(owner))
                     continue;
 
-                LogVisibleNameSource(owner, check.Operation, phase + ":SelectedOwner");
+                if (Mod.IsVerboseLoggingEnabled)
+                    LogVisibleNameSource(owner, check.Operation, phase + ":SelectedOwner");
                 var ownerEdges = GetAggregateRoadEdges(owner);
                 if (ContainsAny(ownerEdges, remainderEdgeSet))
                 {
                     ok = false;
-                    Mod.log.Warn($"Aggregate stability detected selected/remainder merge. Phase={phase}, Operation={check.Operation}, SelectedOwner={owner.Index}, OwnerEdges={ownerEdges.Count}, RemainderEdges={check.RemainderEdges.Count}.");
+                    Mod.log.Warn(() => $"Aggregate stability detected selected/remainder merge. Phase={phase}, Operation={check.Operation}, SelectedOwner={owner.Index}, OwnerEdges={ownerEdges.Count}, RemainderEdges={check.RemainderEdges.Count}.");
                 }
             }
 
@@ -444,19 +454,20 @@ namespace RoadSignsTools.Systems
                 if (owner == Entity.Null || !EntityManager.Exists(owner))
                     continue;
 
-                LogVisibleNameSource(owner, check.Operation, phase + ":RemainderOwner");
+                if (Mod.IsVerboseLoggingEnabled)
+                    LogVisibleNameSource(owner, check.Operation, phase + ":RemainderOwner");
                 var ownerEdges = GetAggregateRoadEdges(owner);
                 if (ContainsAny(ownerEdges, selectedEdgeSet))
                 {
                     ok = false;
-                    Mod.log.Warn($"Aggregate stability detected remainder/selected merge. Phase={phase}, Operation={check.Operation}, RemainderOwner={owner.Index}, OwnerEdges={ownerEdges.Count}, SelectedEdges={check.SelectedEdges.Count}.");
+                    Mod.log.Warn(() => $"Aggregate stability detected remainder/selected merge. Phase={phase}, Operation={check.Operation}, RemainderOwner={owner.Index}, OwnerEdges={ownerEdges.Count}, SelectedEdges={check.SelectedEdges.Count}.");
                 }
             }
 
             if (check.SelectedEdges.Count == 1)
-                Mod.log.Info($"Tiny subsection independent naming = {ok}. Phase={phase}, Operation={check.Operation}, Edge={check.SelectedEdges[0].Index}, SelectedOwners=[{FormatEntitySet(selectedOwners)}], RemainderOwners=[{FormatEntitySet(remainderOwners)}].");
+                Mod.log.Info(() => $"Tiny subsection independent naming = {ok}. Phase={phase}, Operation={check.Operation}, Edge={check.SelectedEdges[0].Index}, SelectedOwners=[{FormatEntitySet(selectedOwners)}], RemainderOwners=[{FormatEntitySet(remainderOwners)}].");
 
-            Mod.log.Info($"Aggregate stability readback. Phase={phase}, Operation={check.Operation}, SourceAggregate={check.SourceAggregate.Index}, Stable={ok}, ValidSelected={validSelected}, ValidRemainder={validRemainder}, SelectedOwners=[{FormatEntitySet(selectedOwners)}], RemainderOwners=[{FormatEntitySet(remainderOwners)}], SelectedName='{check.SelectedFinalName}', OriginalName='{check.OriginalVisibleName}'.");
+            Mod.log.Info(() => $"Aggregate stability readback. Phase={phase}, Operation={check.Operation}, SourceAggregate={check.SourceAggregate.Index}, Stable={ok}, ValidSelected={validSelected}, ValidRemainder={validRemainder}, SelectedOwners=[{FormatEntitySet(selectedOwners)}], RemainderOwners=[{FormatEntitySet(remainderOwners)}], SelectedName='{check.SelectedFinalName}', OriginalName='{check.OriginalVisibleName}'.");
             return ok && validSelected > 0;
         }
 
@@ -598,7 +609,7 @@ namespace RoadSignsTools.Systems
             var clone = EntityManager.Instantiate(sourceAggregate);
             if (clone == Entity.Null || !EntityManager.Exists(clone) || !EntityManager.HasBuffer<AggregateElement>(clone))
             {
-                Mod.log.Warn($"Road Naming: aggregate clone failed. Operation={operation}, SourceAggregate={sourceAggregate.Index}, Role={role}.");
+                Mod.log.Warn(() => $"Road Naming: aggregate clone failed. Operation={operation}, SourceAggregate={sourceAggregate.Index}, Role={role}.");
                 return Entity.Null;
             }
 
@@ -606,7 +617,7 @@ namespace RoadSignsTools.Systems
             InvalidateAggregateLabelState(clone);
             EnsureRefreshTag<Updated>(clone);
             EnsureRefreshTag<BatchesUpdated>(clone);
-            Mod.log.Info($"Road Naming: aggregate clone created. Operation={operation}, SourceAggregate={sourceAggregate.Index}, CloneAggregate={clone.Index}, Role={role}.");
+            Mod.log.Info(() => $"Road Naming: aggregate clone created. Operation={operation}, SourceAggregate={sourceAggregate.Index}, CloneAggregate={clone.Index}, Role={role}.");
             return clone;
         }
 
@@ -631,7 +642,7 @@ namespace RoadSignsTools.Systems
 
                 MarkManagedAggregateEdge(edge);
                 EnsureRefreshTag<BatchesUpdated>(edge);
-                Mod.log.Info($"Road Naming: aggregate edge assignment. Operation={operation}, Role={role}, Edge={edge.Index}, Aggregate={aggregate.Index}, EdgeUpdatedTagSkipped=True.");
+                Mod.log.Info(() => $"Road Naming: aggregate edge assignment. Operation={operation}, Role={role}, Edge={edge.Index}, Aggregate={aggregate.Index}, EdgeUpdatedTagSkipped=True.");
             }
 
             InvalidateAggregateLabelState(aggregate);
@@ -656,15 +667,37 @@ namespace RoadSignsTools.Systems
         // A tagged edge must not remain in any aggregate buffer except the
         // RoadSigns-owned aggregate that currently owns it, otherwise vanilla can
         // still reach it indirectly through AggregateElement.
-        private void RemoveProtectedEdgesFromUnmanagedAggregateBuffers(List<Entity> protectedEdges, HashSet<Entity> selectedAggregateSet, HashSet<Entity> remainderAggregateSet, string operation)
+        private void RemoveProtectedEdgesFromUnmanagedAggregateBuffers(List<Entity> protectedEdges, string operation)
         {
             if (protectedEdges.Count == 0)
                 return;
 
-            var protectedSet = new HashSet<Entity>(protectedEdges);
-            var allowedAggregates = new HashSet<Entity>(selectedAggregateSet);
-            foreach (var aggregate in remainderAggregateSet)
-                allowedAggregates.Add(aggregate);
+            var protectedSet = new HashSet<Entity>();
+            var allowedOwnerByEdge = new Dictionary<Entity, Entity>();
+            for (var edgeIndex = 0; edgeIndex < protectedEdges.Count; edgeIndex++)
+            {
+                var edge = protectedEdges[edgeIndex];
+                if (edge == Entity.Null || !EntityManager.Exists(edge))
+                    continue;
+
+                protectedSet.Add(edge);
+                if (EntityManager.HasComponent<Aggregated>(edge))
+                {
+                    var owner = EntityManager.GetComponentData<Aggregated>(edge).m_Aggregate;
+                    if (owner != Entity.Null
+                        && EntityManager.Exists(owner)
+                        && EntityManager.HasComponent<RoadSignsManagedAggregate>(owner))
+                    {
+                        allowedOwnerByEdge[edge] = owner;
+                    }
+                }
+            }
+
+            if (protectedSet.Count == 0)
+                return;
+
+            AddManagedAggregateBufferOwners(protectedSet, allowedOwnerByEdge);
+            RepairProtectedEdgeReverseOwnership(allowedOwnerByEdge, operation);
 
             var aggregates = _aggregateOwnerQuery.ToEntityArray(Allocator.Temp);
             try
@@ -672,14 +705,19 @@ namespace RoadSignsTools.Systems
                 for (var aggregateIndex = 0; aggregateIndex < aggregates.Length; aggregateIndex++)
                 {
                     var aggregate = aggregates[aggregateIndex];
-                    if (allowedAggregates.Contains(aggregate) || !EntityManager.Exists(aggregate) || !EntityManager.HasBuffer<AggregateElement>(aggregate))
+                    if (!EntityManager.Exists(aggregate) || !EntityManager.HasBuffer<AggregateElement>(aggregate))
                         continue;
 
                     var buffer = EntityManager.GetBuffer<AggregateElement>(aggregate);
                     var removed = 0;
                     for (var elementIndex = buffer.Length - 1; elementIndex >= 0; elementIndex--)
                     {
-                        if (!protectedSet.Contains(buffer[elementIndex].m_Edge))
+                        var edge = buffer[elementIndex].m_Edge;
+                        if (!protectedSet.Contains(edge))
+                            continue;
+
+                        allowedOwnerByEdge.TryGetValue(edge, out var allowedOwner);
+                        if (aggregate == allowedOwner)
                             continue;
 
                         buffer.RemoveAt(elementIndex);
@@ -690,13 +728,154 @@ namespace RoadSignsTools.Systems
                     {
                         EnsureRefreshTag<Updated>(aggregate);
                         EnsureRefreshTag<BatchesUpdated>(aggregate);
-                        Mod.log.Warn($"Road Naming: removed protected RoadSigns edges from another aggregate buffer. Operation={operation}, Aggregate={aggregate.Index}, RemovedEdges={removed}.");
+                        Mod.log.Warn(() => $"Road Naming: removed protected RoadSigns edges from unmanaged aggregate buffer. Operation={operation}, Aggregate={aggregate.Index}, RemovedEdges={removed}.");
                     }
                 }
             }
             finally
             {
                 aggregates.Dispose();
+            }
+        }
+
+        // Builds the authoritative RoadSigns owner map from managed aggregate buffers.
+        // This is the part vanilla can not safely infer from Aggregated.m_Aggregate after
+        // a nearby road update has temporarily pointed a protected edge at a vanilla owner.
+        private void AddManagedAggregateBufferOwners(HashSet<Entity> protectedSet, Dictionary<Entity, Entity> allowedOwnerByEdge)
+        {
+            var managedAggregates = _managedAggregateOwnerQuery.ToEntityArray(Allocator.Temp);
+            try
+            {
+                for (var aggregateIndex = 0; aggregateIndex < managedAggregates.Length; aggregateIndex++)
+                {
+                    var aggregate = managedAggregates[aggregateIndex];
+                    if (!EntityManager.Exists(aggregate) || !EntityManager.HasBuffer<AggregateElement>(aggregate))
+                        continue;
+
+                    var buffer = EntityManager.GetBuffer<AggregateElement>(aggregate, true);
+                    for (var elementIndex = 0; elementIndex < buffer.Length; elementIndex++)
+                    {
+                        var edge = buffer[elementIndex].m_Edge;
+                        if (!protectedSet.Contains(edge))
+                            continue;
+
+                        if (!allowedOwnerByEdge.TryGetValue(edge, out var currentOwner)
+                            || currentOwner == Entity.Null
+                            || !EntityManager.Exists(currentOwner))
+                        {
+                            allowedOwnerByEdge[edge] = aggregate;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                managedAggregates.Dispose();
+            }
+        }
+
+        // Restores the reverse edge -> aggregate link to the RoadSigns aggregate before
+        // trimming vanilla buffers. Without this, a vanilla aggregate can consume a
+        // protected edge and leave the mod aggregate orphaned until the route is reapplied.
+        private void RepairProtectedEdgeReverseOwnership(Dictionary<Entity, Entity> allowedOwnerByEdge, string operation)
+        {
+            foreach (var pair in allowedOwnerByEdge)
+            {
+                var edge = pair.Key;
+                var allowedOwner = pair.Value;
+                if (edge == Entity.Null
+                    || allowedOwner == Entity.Null
+                    || !EntityManager.Exists(edge)
+                    || !EntityManager.Exists(allowedOwner))
+                {
+                    continue;
+                }
+
+                MarkManagedAggregate(allowedOwner);
+                MarkManagedAggregateEdge(edge);
+                EnsureAggregateBufferContainsEdge(allowedOwner, edge);
+
+                var repaired = false;
+                if (EntityManager.HasComponent<Aggregated>(edge))
+                {
+                    var aggregated = EntityManager.GetComponentData<Aggregated>(edge);
+                    if (aggregated.m_Aggregate != allowedOwner)
+                    {
+                        aggregated.m_Aggregate = allowedOwner;
+                        EntityManager.SetComponentData(edge, aggregated);
+                        repaired = true;
+                    }
+                }
+                else
+                {
+                    EntityManager.AddComponentData(edge, new Aggregated { m_Aggregate = allowedOwner });
+                    repaired = true;
+                }
+
+                if (!repaired)
+                    continue;
+
+                EnsureRefreshTag<BatchesUpdated>(edge);
+                EnsureRefreshTag<Updated>(allowedOwner);
+                EnsureRefreshTag<BatchesUpdated>(allowedOwner);
+                Mod.log.Warn(() => $"Road Naming: restored RoadSigns aggregate ownership after vanilla aggregate update. Operation={operation}, Edge={edge.Index}, ManagedAggregate={allowedOwner.Index}.");
+            }
+        }
+
+        private void EnsureAggregateBufferContainsEdge(Entity aggregate, Entity edge)
+        {
+            if (aggregate == Entity.Null
+                || edge == Entity.Null
+                || !EntityManager.Exists(aggregate)
+                || !EntityManager.Exists(edge)
+                || !EntityManager.HasBuffer<AggregateElement>(aggregate))
+            {
+                return;
+            }
+
+            var buffer = EntityManager.GetBuffer<AggregateElement>(aggregate);
+            for (var i = 0; i < buffer.Length; i++)
+            {
+                if (buffer[i].m_Edge == edge)
+                    return;
+            }
+
+            buffer.Add(new AggregateElement { m_Edge = edge });
+        }
+
+        private void CleanupProtectedAggregateBuffersIfDue()
+        {
+            if (_aggregateStabilityChecks.Count == 0)
+            {
+                if (_updatedAggregateOwnerQuery.IsEmptyIgnoreFilter)
+                {
+                    _protectedAggregateBufferCleanupTicks--;
+                    if (_protectedAggregateBufferCleanupTicks > 0)
+                        return;
+                }
+
+                _protectedAggregateBufferCleanupTicks = ProtectedAggregateBufferCleanupIntervalTicks;
+            }
+            else
+            {
+                _protectedAggregateBufferCleanupTicks = 0;
+            }
+
+            var protectedEdges = _roadSignsAggregateMemberQuery.ToEntityArray(Allocator.Temp);
+            try
+            {
+                if (protectedEdges.Length == 0)
+                    return;
+
+                var edges = new List<Entity>(protectedEdges.Length);
+                for (var edgeIndex = 0; edgeIndex < protectedEdges.Length; edgeIndex++)
+                    edges.Add(protectedEdges[edgeIndex]);
+
+                RemoveProtectedEdgesFromUnmanagedAggregateBuffers(edges, "ProtectedAggregateBufferInvariant");
+            }
+            finally
+            {
+                protectedEdges.Dispose();
             }
         }
 
@@ -838,7 +1017,7 @@ namespace RoadSignsTools.Systems
             }
 
             if (edges.Count != bufferEdgeCount)
-                Mod.log.Info($"Road Naming: aggregate membership expanded from reverse lookup. Aggregate={nameEntity.Index}, BufferEdges={bufferEdgeCount}, ResolvedEdges={edges.Count}.");
+                Mod.log.Info(() => $"Road Naming: aggregate membership expanded from reverse lookup. Aggregate={nameEntity.Index}, BufferEdges={bufferEdgeCount}, ResolvedEdges={edges.Count}.");
 
             return edges;
         }
@@ -886,16 +1065,22 @@ namespace RoadSignsTools.Systems
                 }
             }
 
-            VerifyAuthoritativeNameOwner(nameEntity, safeName, operation, source, selectedCount, totalCount);
-            LogVisibleNameSource(nameEntity, operation, source);
+            if (Mod.IsVerboseLoggingEnabled)
+            {
+                VerifyAuthoritativeNameOwner(nameEntity, safeName, operation, source, selectedCount, totalCount);
+                LogVisibleNameSource(nameEntity, operation, source);
+            }
         }
 
         // Logs what sort of entity currently owns the visible label and what label buffers it has.
         private void LogVisibleNameSource(Entity nameEntity, string operation, string source)
         {
+            if (!Mod.IsVerboseLoggingEnabled)
+                return;
+
             if (nameEntity == Entity.Null || !EntityManager.Exists(nameEntity))
             {
-                Mod.log.Warn($"Road Naming: visible-name source missing. Operation={operation}, Source={source}, NameEntity={nameEntity.Index}.");
+                Mod.log.Warn(() => $"Road Naming: visible-name source missing. Operation={operation}, Source={source}, NameEntity={nameEntity.Index}.");
                 return;
             }
 
@@ -910,17 +1095,20 @@ namespace RoadSignsTools.Systems
                 : 0;
             var visibleName = GetCurrentAuthoritativeName(nameEntity, string.Empty);
 
-            Mod.log.Info($"Road Naming: visible-name source readback. Operation={operation}, Source={source}, NameEntity={nameEntity.Index}, HasAggregate={EntityManager.HasComponent<Aggregate>(nameEntity)}, HasLabelMaterial={EntityManager.HasComponent<LabelMaterial>(nameEntity)}, HasLabelExtents={EntityManager.HasComponent<LabelExtents>(nameEntity)}, HasDeleted={EntityManager.HasComponent<Deleted>(nameEntity)}, HasTemp={EntityManager.HasComponent<Game.Tools.Temp>(nameEntity)}, AggregateElements={aggregateElementCount}, LabelPositions={labelPositionCount}, LabelVertices={labelVertexCount}, Name='{visibleName}'.");
+            Mod.log.Info(() => $"Road Naming: visible-name source readback. Operation={operation}, Source={source}, NameEntity={nameEntity.Index}, HasAggregate={EntityManager.HasComponent<Aggregate>(nameEntity)}, HasLabelMaterial={EntityManager.HasComponent<LabelMaterial>(nameEntity)}, HasLabelExtents={EntityManager.HasComponent<LabelExtents>(nameEntity)}, HasDeleted={EntityManager.HasComponent<Deleted>(nameEntity)}, HasTemp={EntityManager.HasComponent<Game.Tools.Temp>(nameEntity)}, AggregateElements={aggregateElementCount}, LabelPositions={labelPositionCount}, LabelVertices={labelVertexCount}, Name='{visibleName}'.");
         }
         // Readback check after naming writes so we can see whether NameSystem
         // stored and rendered what we expected.
         private void VerifyAuthoritativeNameOwner(Entity nameEntity, string expectedName, string operation, string source, int selectedCount, int totalCount)
         {
+            if (!Mod.IsVerboseLoggingEnabled)
+                return;
+
             var hasCustomName = _nameSystem.TryGetCustomName(nameEntity, out var storedName);
             var renderedName = _nameSystem.GetRenderedLabelName(nameEntity);
             var matched = hasCustomName && string.Equals(storedName, expectedName, System.StringComparison.Ordinal);
             var level = matched ? "passed" : "needs-check";
-            Mod.log.Info($"Road Naming: label visibility check {level}. Operation={operation}, Source={source}, NameEntity={nameEntity.Index}, SelectedEdges={selectedCount}, TotalAggregateEdges={totalCount}, Expected='{expectedName}', Stored='{storedName ?? string.Empty}', Rendered='{renderedName ?? string.Empty}'.");
+            Mod.log.Info(() => $"Road Naming: label visibility check {level}. Operation={operation}, Source={source}, NameEntity={nameEntity.Index}, SelectedEdges={selectedCount}, TotalAggregateEdges={totalCount}, Expected='{expectedName}', Stored='{storedName ?? string.Empty}', Rendered='{renderedName ?? string.Empty}'.");
         }
         // Saves the current applied route intent into the route database,
         // including waypoints, ordered segments and some display metadata for the UI.
@@ -932,7 +1120,7 @@ namespace RoadSignsTools.Systems
             var title = BuildRouteRecordTitle(mode, inputValue, metadata);
             var route = _routeDatabase.CreateRoute(title, mode, inputValue, placement, waypoints, segmentList, streetNames);
             ApplyRouteCorridorMetadata(route, metadata);
-            Mod.log.Info($"Road Naming: route saved. RouteId={route.RouteId}, Title='{route.DisplayTitle}', Mode={route.Mode}, Input='{route.BaseInputValue}', Segments={route.SegmentCount}, Waypoints={route.WaypointCount}, Corridor='{route.DerivedDisplayCorridor}', Streets='{BuildStreetSummary(route)}'.");
+            Mod.log.Info(() => $"Road Naming: route saved. RouteId={route.RouteId}, Title='{route.DisplayTitle}', Mode={route.Mode}, Input='{route.BaseInputValue}', Segments={route.SegmentCount}, Waypoints={route.WaypointCount}, Corridor='{route.DerivedDisplayCorridor}', Streets='{BuildStreetSummary(route)}'.");
             return route;
         }
 
@@ -962,7 +1150,7 @@ namespace RoadSignsTools.Systems
             }
             catch (System.Exception ex)
             {
-                Mod.log.Warn($"Road Naming: saved route status evaluation failed for route {route.RouteId}. Error='{ex.Message}'.");
+                Mod.log.Warn(() => $"Road Naming: saved route status evaluation failed for route {route.RouteId}. Error='{ex.Message}'.");
                 return SavedRouteStatus.PartiallyValid;
             }
         }
@@ -992,7 +1180,8 @@ namespace RoadSignsTools.Systems
             };
             CopyWaypoints(review.CandidateWaypoints, route.Waypoints);
             AddSegments(review.CandidateSegments, candidateSegments);
-            Mod.log.Info($"Road Naming: rebuild review prepared. RouteId={route.RouteId}, CandidateSegments={review.CandidateSegments.Count}, StoredSegments={route.OrderedSegmentIds.Count}, Status={EvaluateSavedRouteStatus(route)}.");
+            var reviewCandidateSegmentCount = review.CandidateSegments.Count;
+            Mod.log.Info(() => $"Road Naming: rebuild review prepared. RouteId={route.RouteId}, CandidateSegments={reviewCandidateSegmentCount}, StoredSegments={route.OrderedSegmentIds.Count}, Status={EvaluateSavedRouteStatus(route)}.");
             message = review.Message;
             return true;
         }
@@ -1026,7 +1215,9 @@ namespace RoadSignsTools.Systems
             };
             CopyWaypoints(review.CandidateWaypoints, route.Waypoints);
             AddSegments(review.CandidateSegments, candidateSegments);
-            Mod.log.Info($"Road Naming: modify review prepared. RouteId={route.RouteId}, CandidateSegments={review.CandidateSegments.Count}, Waypoints={review.CandidateWaypoints.Count}.");
+            var reviewCandidateSegmentCount = review.CandidateSegments.Count;
+            var reviewCandidateWaypointCount = review.CandidateWaypoints.Count;
+            Mod.log.Info(() => $"Road Naming: modify review prepared. RouteId={route.RouteId}, CandidateSegments={reviewCandidateSegmentCount}, Waypoints={reviewCandidateWaypointCount}.");
             message = review.Message;
             return true;
         }
@@ -1079,7 +1270,7 @@ namespace RoadSignsTools.Systems
             route.UpdatedAtUtcTicks = System.DateTime.UtcNow.Ticks;
             route.LastAppliedUtcTicks = route.UpdatedAtUtcTicks;
             message = $"Committed saved route '{BuildRouteDisplayTitle(route)}' using {normalizedFinalSegments.Count} corrected segment(s).";
-            Mod.log.Info($"Road Naming: saved route review committed. RouteId={route.RouteId}, FinalSegments={normalizedFinalSegments.Count}, AffectedSegments={refreshSegments.Count}, ReplayedRoutes={remainingRoutes.Count}.");
+            Mod.log.Info(() => $"Road Naming: saved route review committed. RouteId={route.RouteId}, FinalSegments={normalizedFinalSegments.Count}, AffectedSegments={refreshSegments.Count}, ReplayedRoutes={remainingRoutes.Count}.");
             return true;
         }
 
@@ -1089,7 +1280,7 @@ namespace RoadSignsTools.Systems
             if (!_routeDatabase.TryGet(routeId, out var route))
             {
                 message = $"Saved route {routeId} was not found.";
-                Mod.log.Warn($"Road Naming: route reapply failed; missing route. RouteId={routeId}.");
+                Mod.log.Warn(() => $"Road Naming: route reapply failed; missing route. RouteId={routeId}.");
                 return false;
             }
 
@@ -1097,15 +1288,16 @@ namespace RoadSignsTools.Systems
             if (validSegments.Count == 0)
             {
                 message = $"Saved route '{route.DisplayTitle}' has no valid road segments. Try Rebuild.";
-                Mod.log.Warn($"route reapply failed; no valid segments. RouteId={routeId}, StoredSegments={route.OrderedSegmentIds.Count}.");
+                Mod.log.Warn(() => $"route reapply failed; no valid segments. RouteId={routeId}, StoredSegments={route.OrderedSegmentIds.Count}.");
                 return false;
             }
 
             var result = CommitSavedRouteReview(routeId, route.Waypoints, validSegments, route.RouteNumberPlacement, out message);
+            var reapplyMessage = message;
             if (result)
-                Mod.log.Info($"route reapplied through safe commit pipeline. RouteId={route.RouteId}, Mode={route.Mode}, Input='{route.BaseInputValue}', Segments={validSegments.Count}.");
+                Mod.log.Info(() => $"route reapplied through safe commit pipeline. RouteId={route.RouteId}, Mode={route.Mode}, Input='{route.BaseInputValue}', Segments={validSegments.Count}.");
             else
-                Mod.log.Warn($"safe route reapply failed. RouteId={route.RouteId}, Message='{message}'.");
+                Mod.log.Warn(() => $"safe route reapply failed. RouteId={route.RouteId}, Message='{reapplyMessage}'.");
 
             return result;
         }
@@ -1146,7 +1338,7 @@ namespace RoadSignsTools.Systems
                 if (path.Count == 0)
                 {
                     message = $"Could not rebuild saved route '{route.DisplayTitle}' between waypoint {i} and {i + 1}.";
-                    Mod.log.Warn($"Road Naming: route candidate build failed; no path. RouteId={route.RouteId}, From={route.Waypoints[i - 1].Segment.Index}, To={route.Waypoints[i].Segment.Index}.");
+                    Mod.log.Warn(() => $"Road Naming: route candidate build failed; no path. RouteId={route.RouteId}, From={route.Waypoints[i - 1].Segment.Index}, To={route.Waypoints[i].Segment.Index}.");
                     return false;
                 }
 
@@ -1178,17 +1370,17 @@ namespace RoadSignsTools.Systems
             if (!_routeDatabase.TryGet(routeId, out var route))
             {
                 message = $"Saved route {routeId} was not found.";
-                Mod.log.Warn($"Road Naming: route delete failed; missing route. RouteId={routeId}.");
+                Mod.log.Warn(() => $"Road Naming: route delete failed; missing route. RouteId={routeId}.");
                 return false;
             }
 
             var affectedSegments = FilterValidRouteSegments(route.OrderedSegmentIds);
-            Mod.log.Info($"Road Naming: route removal requested. RouteId={routeId}, Mode={route.Mode}, Input='{route.BaseInputValue}', StoredSegments={route.OrderedSegmentIds.Count}, ValidSegments={affectedSegments.Count}.");
+            Mod.log.Info(() => $"Road Naming: route removal requested. RouteId={routeId}, Mode={route.Mode}, Input='{route.BaseInputValue}', StoredSegments={route.OrderedSegmentIds.Count}, ValidSegments={affectedSegments.Count}.");
 
             if (!_routeDatabase.Delete(routeId))
             {
                 message = $"Saved route {routeId} could not be deleted.";
-                Mod.log.Warn($"Road Naming: route delete failed during database removal. RouteId={routeId}.");
+                Mod.log.Warn(() => $"Road Naming: route delete failed during database removal. RouteId={routeId}.");
                 return false;
             }
 
@@ -1196,7 +1388,7 @@ namespace RoadSignsTools.Systems
             message = affectedSegments.Count > 0
                 ? $"Deleted saved route {routeId} and reverted {affectedSegments.Count} affected road segment(s)."
                 : $"Deleted saved route {routeId}. No valid affected road segments remained to revert.";
-            Mod.log.Info($"Road Naming: route deleted and reverted. RouteId={routeId}, RevertedSegments={affectedSegments.Count}, ReplayedRoutes={replayedRoutes}.");
+            Mod.log.Info(() => $"Road Naming: route deleted and reverted. RouteId={routeId}, RevertedSegments={affectedSegments.Count}, ReplayedRoutes={replayedRoutes}.");
             return true;
         }
 
@@ -1216,7 +1408,7 @@ namespace RoadSignsTools.Systems
                 ReplaySavedRouteContribution(remainingRoutes[i], affectedSet);
 
             ApplyResolvedMetadataToSegments(affectedSegments, "DeleteSavedRouteRevert");
-            Mod.log.Info($"Road Naming: route revert completed. DeletedRouteId={deletedRoute.RouteId}, AffectedSegments={affectedSegments.Count}, RemainingRoutesReplayed={remainingRoutes.Count}.");
+            Mod.log.Info(() => $"Road Naming: route revert completed. DeletedRouteId={deletedRoute.RouteId}, AffectedSegments={affectedSegments.Count}, RemainingRoutesReplayed={remainingRoutes.Count}.");
             return remainingRoutes.Count;
         }
 
@@ -1390,7 +1582,7 @@ namespace RoadSignsTools.Systems
                     metadata.Touch();
                 }
 
-                Mod.log.Info($"Road Naming: replayed rename contribution. RouteId={route.RouteId}, Input='{route.BaseInputValue}'.");
+                Mod.log.Info(() => $"Road Naming: replayed rename contribution. RouteId={route.RouteId}, Input='{route.BaseInputValue}'.");
                 return;
             }
 
@@ -1418,7 +1610,7 @@ namespace RoadSignsTools.Systems
                 metadata.Touch();
             }
 
-            Mod.log.Info($"Road Naming: replayed route-code contribution. RouteId={route.RouteId}, Mode={route.Mode}, RouteCode='{routeCode}'.");
+            Mod.log.Info(() => $"Road Naming: replayed route-code contribution. RouteId={route.RouteId}, Mode={route.Mode}, RouteCode='{routeCode}'.");
         }
 
         // Looks at live visible-name owners to find segments still carrying this route's label,
@@ -1505,7 +1697,7 @@ namespace RoadSignsTools.Systems
             }
             catch (System.Exception ex)
             {
-                Mod.log.Warn($"Road Naming: HasAggregateExtentDrift failed for route {route.RouteId}. Error='{ex.Message}'.");
+                Mod.log.Warn(() => $"Road Naming: HasAggregateExtentDrift failed for route {route.RouteId}. Error='{ex.Message}'.");
                 return false;
             }
         }
@@ -1529,7 +1721,7 @@ namespace RoadSignsTools.Systems
                     var currentName = GetCurrentAuthoritativeName(owner, string.Empty) ?? string.Empty;
                     if (CountRouteCodeOccurrences(currentName, routeCode) > 1)
                     {
-                        Mod.log.Warn($"Road Naming: duplicate route designation artefacts detected. RouteId={route.RouteId}, Aggregate={owner.Index}, VisibleName='{currentName}'.");
+                        Mod.log.Warn(() => $"Road Naming: duplicate route designation artefacts detected. RouteId={route.RouteId}, Aggregate={owner.Index}, VisibleName='{currentName}'.");
                         return true;
                     }
                 }
@@ -1538,7 +1730,7 @@ namespace RoadSignsTools.Systems
             }
             catch (System.Exception ex)
             {
-                Mod.log.Warn($"Road Naming: duplicate designation artefact check failed for route {route.RouteId}. Error='{ex.Message}'.");
+                Mod.log.Warn(() => $"Road Naming: duplicate designation artefact check failed for route {route.RouteId}. Error='{ex.Message}'.");
                 return false;
             }
         }
@@ -1688,7 +1880,7 @@ namespace RoadSignsTools.Systems
             }
 
             ApplyAuthoritativeVisibleNames(appliedSegments, operation);
-            Mod.log.Info($"Road Naming: world labels refreshed after route revert. Operation={operation}, Segments={appliedSegments.Count}.");
+            Mod.log.Info(() => $"Road Naming: world labels refreshed after route revert. Operation={operation}, Segments={appliedSegments.Count}.");
         }
 
         // Re-captures the current live road names into a saved route's metadata snapshots.
@@ -1739,7 +1931,7 @@ namespace RoadSignsTools.Systems
             ApplyResolvedMetadataToSegments(validSegments, "CaptureSavedRouteRoadNames");
             route.UpdatedAtUtcTicks = System.DateTime.UtcNow.Ticks;
             message = $"Captured current road names for '{BuildRouteDisplayTitle(route)}'.";
-            Mod.log.Info($"Road Naming: saved route road-name capture complete. RouteId={route.RouteId}, Segments={validSegments.Count}, UpdatedSnapshots={updated}.");
+            Mod.log.Info(() => $"Road Naming: saved route road-name capture complete. RouteId={route.RouteId}, Segments={validSegments.Count}, UpdatedSnapshots={updated}.");
             return true;
         }
 
@@ -1749,7 +1941,7 @@ namespace RoadSignsTools.Systems
             if (_routeDatabase.Rename(routeId, title))
             {
                 message = $"Renamed saved route {routeId}.";
-                Mod.log.Info($"Road Naming: route record renamed. RouteId={routeId}, Title='{title}'.");
+                Mod.log.Info(() => $"Road Naming: route record renamed. RouteId={routeId}, Title='{title}'.");
                 return true;
             }
 
@@ -1763,7 +1955,7 @@ namespace RoadSignsTools.Systems
             if (_routeDatabase.UpdateInput(routeId, inputValue))
             {
                 message = $"Updated saved route {routeId} input value.";
-                Mod.log.Info($"Road Naming: route input updated. RouteId={routeId}, Input='{inputValue}'.");
+                Mod.log.Info(() => $"Road Naming: route input updated. RouteId={routeId}, Input='{inputValue}'.");
                 return true;
             }
 
@@ -1776,7 +1968,7 @@ namespace RoadSignsTools.Systems
         public bool RebuildSavedRoute(long routeId, out string message)
         {
             message = $"Direct rebuild is disabled for saved route {routeId}. Start rebuild review instead.";
-            Mod.log.Warn($"Road Naming: direct rebuild call blocked. RouteId={routeId}. Use preview-first rebuild review.");
+            Mod.log.Warn(() => $"Road Naming: direct rebuild call blocked. RouteId={routeId}. Use preview-first rebuild review.");
             return false;
         }
 
@@ -1821,7 +2013,7 @@ namespace RoadSignsTools.Systems
                 }
                 catch (System.Exception ex)
                 {
-                    Mod.log.Warn($"Road Naming: failed to serialize saved route {route.RouteId} for Saved Routes JSON. Error='{ex.Message}'.");
+                    Mod.log.Warn(() => $"Road Naming: failed to serialize saved route {route.RouteId} for Saved Routes JSON. Error='{ex.Message}'.");
                     parts.Add("{" +
                         "\"id\":" + route.RouteId.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," +
                         "\"title\":" + JsonString(string.IsNullOrWhiteSpace(route.DisplayTitle) ? "Corrupt Saved Route" : route.DisplayTitle) + "," +
@@ -2232,7 +2424,7 @@ namespace RoadSignsTools.Systems
                 _repository.Remove(entity);
 
             if (orphaned.Count > 0)
-                Mod.log.Info($"Removed {orphaned.Count} orphaned road-route metadata record(s).");
+                Mod.log.Info(() => $"Removed {orphaned.Count} orphaned road-route metadata record(s).");
         }
 
         // Writes segment metadata and saved route data into the save file.
@@ -2254,7 +2446,7 @@ namespace RoadSignsTools.Systems
             }
 
             SerializeRoutes(writer);
-            Mod.log.Info($"Serialized {_repository.Count} segment route metadata record(s) and {_routeDatabase.Count} saved route record(s).");
+            Mod.log.Info(() => $"Serialized {_repository.Count} segment route metadata record(s) and {_routeDatabase.Count} saved route record(s).");
         }
 
         // Restores segment metadata and saved routes from the save file,
@@ -2267,7 +2459,7 @@ namespace RoadSignsTools.Systems
             reader.Read(out version);
             if (version <= 0 || version > SaveVersion)
             {
-                Mod.log.Warn($"Unsupported Road Naming: save data version {version}; metadata ignored.");
+                Mod.log.Warn(() => $"Unsupported Road Naming: save data version {version}; metadata ignored.");
                 return;
             }
 
@@ -2314,7 +2506,7 @@ namespace RoadSignsTools.Systems
                 DeserializeRoutes(reader, version);
 
             QueuePostLoadNameReapply("Deserialize");
-            Mod.log.Info($"Deserialized {_repository.Count} segment route metadata record(s) and {_routeDatabase.Count} saved route record(s); deferred post-load name reapply scheduled.");
+            Mod.log.Info(() => $"Deserialized {_repository.Count} segment route metadata record(s) and {_routeDatabase.Count} saved route record(s); deferred post-load name reapply scheduled.");
         }
 
         // Resets runtime state when the serializer wants a clean default setup.
@@ -2339,7 +2531,7 @@ namespace RoadSignsTools.Systems
             _pendingPostLoadNameReapplyDelayTicks = DeferredNameReapplyDelayTicks;
             _pendingPostLoadNameReapplyAttempts = 0;
             _pendingPostLoadNameReapplyWaitingLogged = false;
-            Mod.log.Info($"Road Naming: deferred post-load name reapply queued. Source={source}, MetadataRecords={_repository.Count}, SavedRoutes={_routeDatabase.Count}, DelayTicks={DeferredNameReapplyDelayTicks}.");
+            Mod.log.Info(() => $"Road Naming: deferred post-load name reapply queued. Source={source}, MetadataRecords={_repository.Count}, SavedRoutes={_routeDatabase.Count}, DelayTicks={DeferredNameReapplyDelayTicks}.");
         }
 
         // Handles the delayed post-load name restore once the game world is actually safe for writes.
@@ -2359,7 +2551,7 @@ namespace RoadSignsTools.Systems
                 if (!_pendingPostLoadNameReapplyWaitingLogged)
                 {
                     _pendingPostLoadNameReapplyWaitingLogged = true;
-                    Mod.log.Info($"Road Naming: post-load name reapply waiting; world not ready. Reason={reason}.");
+                    Mod.log.Info(() => $"Road Naming: post-load name reapply waiting; world not ready. Reason={reason}.");
                 }
 
                 _pendingPostLoadNameReapplyDelayTicks = DeferredNameReapplyRetryDelayTicks;
@@ -2369,27 +2561,27 @@ namespace RoadSignsTools.Systems
             _pendingPostLoadNameReapplyAttempts++;
             try
             {
-                Mod.log.Info($"Road Naming: post-load name reapply starting. Attempt={_pendingPostLoadNameReapplyAttempts}, MetadataRecords={_repository.Count}, SavedRoutes={_routeDatabase.Count}.");
+                Mod.log.Info(() => $"Road Naming: post-load name reapply starting. Attempt={_pendingPostLoadNameReapplyAttempts}, MetadataRecords={_repository.Count}, SavedRoutes={_routeDatabase.Count}.");
                 CleanupOrphanedMetadata();
                 ReapplyAllResolvedNames(out var reapplied, out var skipped);
                 _pendingPostLoadNameReapply = false;
                 _pendingPostLoadNameReapplyDelayTicks = 0;
                 _pendingPostLoadNameReapplyAttempts = 0;
                 _pendingPostLoadNameReapplyWaitingLogged = false;
-                Mod.log.Info($"Road Naming: post-load name reapply completed. Reapplied={reapplied}, SkippedMissingOrInvalid={skipped}, SavedRoutes={_routeDatabase.Count}.");
+                Mod.log.Info(() => $"Road Naming: post-load name reapply completed. Reapplied={reapplied}, SkippedMissingOrInvalid={skipped}, SavedRoutes={_routeDatabase.Count}.");
             }
             catch (System.Exception ex)
             {
                 if (_pendingPostLoadNameReapplyAttempts < DeferredNameReapplyMaxAttempts)
                 {
                     _pendingPostLoadNameReapplyDelayTicks = DeferredNameReapplyRetryDelayTicks;
-                    Mod.log.Warn(ex, $"Road Naming: post-load name reapply failed; retry scheduled. Attempt={_pendingPostLoadNameReapplyAttempts}, RetryDelayTicks={DeferredNameReapplyRetryDelayTicks}.");
+                    Mod.log.Warn(ex, () => $"Road Naming: post-load name reapply failed; retry scheduled. Attempt={_pendingPostLoadNameReapplyAttempts}, RetryDelayTicks={DeferredNameReapplyRetryDelayTicks}.");
                     return;
                 }
 
                 _pendingPostLoadNameReapply = false;
                 _pendingPostLoadNameReapplyDelayTicks = 0;
-                Mod.log.Error(ex, $"Road Naming: post-load name reapply failed after {_pendingPostLoadNameReapplyAttempts} attempt(s); giving up for this load.");
+                Mod.log.Error(ex, () => $"Road Naming: post-load name reapply failed after {_pendingPostLoadNameReapplyAttempts} attempt(s); giving up for this load.");
             }
         }
 
@@ -2636,7 +2828,7 @@ namespace RoadSignsTools.Systems
 
                 EnsureRouteAnchorMetadata(route);
                 _routeDatabase.AddLoadedRoute(route);
-                Mod.log.Info($"Road Naming: route loaded. RouteId={route.RouteId}, Title='{route.DisplayTitle}', Segments={route.SegmentCount}, Status={EvaluateSavedRouteStatus(route)}.");
+                Mod.log.Info(() => $"Road Naming: route loaded. RouteId={route.RouteId}, Title='{route.DisplayTitle}', Segments={route.SegmentCount}, Status={EvaluateSavedRouteStatus(route)}.");
             }
         }
         // Re-resolves all repository metadata into live segment names after a save load.
@@ -2651,7 +2843,7 @@ namespace RoadSignsTools.Systems
                 if (!_validation.IsValidRoadSegment(metadata.SegmentEntity))
                 {
                     skipped++;
-                    Mod.log.Warn($"Road Naming: post-load reapply skipped missing or invalid segment. Segment={metadata.SegmentEntity.Index}.");
+                    Mod.log.Warn(() => $"Road Naming: post-load reapply skipped missing or invalid segment. Segment={metadata.SegmentEntity.Index}.");
                     continue;
                 }
 
@@ -2678,7 +2870,7 @@ namespace RoadSignsTools.Systems
             {
                 if (metadata != null && !string.Equals(metadata.BaseNameSnapshot, gameStreetName, System.StringComparison.Ordinal))
                 {
-                    Mod.log.Info($"Road Naming: base street snapshot updated. Segment={segment.Index}, Source={source}, GameStreetName='{gameStreetName}', PreviousSnapshot='{metadata.BaseNameSnapshot ?? string.Empty}'.");
+                    Mod.log.Info(() => $"Road Naming: base street snapshot updated. Segment={segment.Index}, Source={source}, GameStreetName='{gameStreetName}', PreviousSnapshot='{metadata.BaseNameSnapshot ?? string.Empty}'.");
                     metadata.BaseNameSnapshot = gameStreetName;
                     metadata.Touch();
                 }
@@ -2690,7 +2882,7 @@ namespace RoadSignsTools.Systems
             if (metadata != null && string.IsNullOrWhiteSpace(metadata.BaseNameSnapshot))
                 metadata.BaseNameSnapshot = fallback;
 
-            Mod.log.Warn($"Road Naming: could not resolve an actual street name for segment {segment.Index}; using fallback '{fallback}'.");
+            Mod.log.Warn(() => $"Road Naming: could not resolve an actual street name for segment {segment.Index}; using fallback '{fallback}'.");
             return fallback;
         }
 
@@ -2783,7 +2975,7 @@ namespace RoadSignsTools.Systems
         {
             if (segment == Entity.Null || !_validation.IsValidRoadSegment(segment))
             {
-                Mod.log.Warn($"Skipped display-name update for invalid segment {segment}.");
+                Mod.log.Warn(() => $"Skipped display-name update for invalid segment {segment}.");
                 return;
             }
 
@@ -2800,9 +2992,9 @@ namespace RoadSignsTools.Systems
             var customNameVisible = _nameSystem.TryGetCustomName(segment, out var storedCustomName);
             var renderedName = _nameSystem.GetRenderedLabelName(segment);
             if (!customNameVisible || !string.Equals(storedCustomName, safeDisplayName, System.StringComparison.Ordinal))
-                Mod.log.Warn($"NameSystem did not echo the expected custom name for segment {segment.Index}. Expected='{safeDisplayName}', Stored='{storedCustomName ?? string.Empty}', Rendered='{renderedName ?? string.Empty}'.");
+                Mod.log.Warn(() => $"NameSystem did not echo the expected custom name for segment {segment.Index}. Expected='{safeDisplayName}', Stored='{storedCustomName ?? string.Empty}', Rendered='{renderedName ?? string.Empty}'.");
             else
-                Mod.log.Info($"Road Naming: display name updated. Segment={segment.Index}, Name='{safeDisplayName}', Rendered='{renderedName ?? string.Empty}'.");
+                Mod.log.Info(() => $"Road Naming: display name updated. Segment={segment.Index}, Name='{safeDisplayName}', Rendered='{renderedName ?? string.Empty}'.");
         }
 
 

@@ -45,8 +45,8 @@ namespace RoadSignsTools.L10N
 
                     { _settings.GetOptionLabelLocaleID(nameof(RoadSignsToolSettings.ShowTopLeftLauncherButton)), "Show Top-Left Launcher Button" },
                     { _settings.GetOptionDescLocaleID(nameof(RoadSignsToolSettings.ShowTopLeftLauncherButton)), "Show the floating launcher button in the gameplay HUD." },
-                    { _settings.GetOptionLabelLocaleID(nameof(RoadSignsToolSettings.EnableLogging)), "Enable Logging" },
-                    { _settings.GetOptionDescLocaleID(nameof(RoadSignsToolSettings.EnableLogging)), "Enable diagnostic logging for Road Signs Tools." },
+                    { _settings.GetOptionLabelLocaleID(nameof(RoadSignsToolSettings.EnableLogging)), "Enable Debug Logging" },
+                    { _settings.GetOptionDescLocaleID(nameof(RoadSignsToolSettings.EnableLogging)), "Write verbose diagnostic logs for Road Signs Tools. Leave this unchecked during normal play." },
 
                     { _settings.GetOptionLabelLocaleID(nameof(RoadSignsToolSettings.Version)), "Version" },
                     { _settings.GetOptionDescLocaleID(nameof(RoadSignsToolSettings.Version)), "Installed Road Signs Tools version." },
@@ -85,6 +85,8 @@ namespace RoadSignsTools.L10N
                     { UIKeys.ModeAssignTooltip, "Assign a major route number to the current route selection." },
                     { UIKeys.ModeRemove, "Remove Route Number" },
                     { UIKeys.ModeRemoveTooltip, "Remove the configured route designation from the selected segments." },
+                    { UIKeys.RenameToolClickAddWaypointTooltip, "Click to add waypoint" },
+                    { UIKeys.RenameToolDragMoveWaypointTooltip, "Drag to move waypoint" },
                     { UIKeys.RoadName, "Road name" },
                     { UIKeys.CurrentRouteSummaryAria, "Current route summary" },
                     { UIKeys.Waypoints, "Waypoints" },

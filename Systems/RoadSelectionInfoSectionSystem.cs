@@ -177,7 +177,7 @@ namespace RoadSignsTools.Systems
 
         private void SelectedRoadInfoButtonClicked(string action)
         {
-            Mod.log.Info($"Road Naming: selected info panel button clicked. Action='{action ?? string.Empty}', Selection={selectedEntity.Index}, RepresentativeRoad={GetRepresentativeRoadSegment(selectedEntity).Index}.");
+            Mod.log.Info(() => $"Road Naming: selected info panel button clicked. Action='{action ?? string.Empty}', Selection={selectedEntity.Index}, RepresentativeRoad={GetRepresentativeRoadSegment(selectedEntity).Index}.");
             RequestUpdate();
             m_InfoUISystem.RequestUpdate();
         }

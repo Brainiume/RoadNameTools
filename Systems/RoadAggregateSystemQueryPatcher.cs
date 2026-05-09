@@ -22,7 +22,7 @@ namespace RoadSignsTools.Systems
             var queryField = typeof(AggregateSystem).GetField(ModifiedQueryFieldName, BindingFlags.Instance | BindingFlags.NonPublic);
             if (queryField == null)
             {
-                Mod.log.Warn($"Road Naming: AggregateSystem query patch skipped because {ModifiedQueryFieldName} was not found.");
+                Mod.log.Warn(() => $"Road Naming: AggregateSystem query patch skipped because {ModifiedQueryFieldName} was not found.");
                 return;
             }
 

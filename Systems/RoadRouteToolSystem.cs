@@ -59,6 +59,8 @@ namespace RoadSignsTools.Systems
 
         public bool HasActiveMoveEdit => _selectionController?.HasActiveMoveEdit ?? false;
 
+        public bool HasHoveredRouteWaypoint => _selectionController?.HasHoveredRouteWaypoint ?? false;
+
         public int ActiveEditIndex => _selectionController?.ActiveEditIndex ?? -1;
 
         public System.Collections.Generic.IReadOnlyList<Entity> SavedRoutePreviewSegments => _savedRoutePreviewSegments;
@@ -238,11 +240,11 @@ namespace RoadSignsTools.Systems
             {
                 var appendedSegments = _selectionController.SelectedSegments.Count - previousSegmentCount;
                 MarkModifyReviewDirty();
-                Mod.log.Info($"Road Naming: waypoint committed. FromWaypoint={previousWaypointCount}, ToWaypoint={_selectionController.WaypointCount}, AppendedSegments={appendedSegments}, TotalSegments={_selectionController.SelectedSegments.Count}");
+                Mod.log.Info(() => $"Road Naming: waypoint committed. FromWaypoint={previousWaypointCount}, ToWaypoint={_selectionController.WaypointCount}, AppendedSegments={appendedSegments}, TotalSegments={_selectionController.SelectedSegments.Count}");
             }
             else
             {
-                Mod.log.Warn($"Road Naming: waypoint rejected: {_selectionController.Warning}");
+                Mod.log.Warn(() => $"Road Naming: waypoint rejected: {_selectionController.Warning}");
             }
             return added;
         }
@@ -273,7 +275,7 @@ namespace RoadSignsTools.Systems
             _selectionController.RemoveLastWaypoint();
             MarkModifyReviewDirty();
             _statusMessage = _selectionController.BuildRouteInstruction();
-            Mod.log.Info($"Road Naming: waypoint undo. Waypoints={_selectionController.WaypointCount}, Segments={_selectionController.SelectedSegments.Count}");
+            Mod.log.Info(() => $"Road Naming: waypoint undo. Waypoints={_selectionController.WaypointCount}, Segments={_selectionController.SelectedSegments.Count}");
         }
 
         public bool Apply()
@@ -306,7 +308,7 @@ namespace RoadSignsTools.Systems
                 _statusMessage = message + $" Saved route #{savedRoute.RouteId}.";
             }
 
-            Mod.log.Info($"Road Naming: apply executed. Mode={_mode}, Segments={_selectionController.SelectedSegments.Count}, Result={result}");
+            Mod.log.Info(() => $"Road Naming: apply executed. Mode={_mode}, Segments={_selectionController.SelectedSegments.Count}, Result={result}");
             return result;
         }
 
@@ -334,7 +336,7 @@ namespace RoadSignsTools.Systems
 
             var status = _metadataSystem.EvaluateSavedRouteStatus(route);
             _statusMessage = $"Previewing saved route #{route.RouteId}: {route.DisplayTitle} ({status}, {_savedRoutePreviewSegments.Count}/{route.OrderedSegmentIds.Count} valid segments).";
-            Mod.log.Info($"Road Naming: saved route preview requested. RouteId={route.RouteId}, ValidSegments={_savedRoutePreviewSegments.Count}, StoredSegments={route.OrderedSegmentIds.Count}, Status={status}.");
+            Mod.log.Info(() => $"Road Naming: saved route preview requested. RouteId={route.RouteId}, ValidSegments={_savedRoutePreviewSegments.Count}, StoredSegments={route.OrderedSegmentIds.Count}, Status={status}.");
             return true;
         }
 
@@ -351,7 +353,7 @@ namespace RoadSignsTools.Systems
             _selectionController.Clear();
             _savedRoutesViewActive = true;
             _statusMessage = message;
-            Mod.log.Info($"Road Naming: rebuild review entered. RouteId={routeId}, CandidateSegments={review.CandidateSegments.Count}.");
+            Mod.log.Info(() => $"Road Naming: rebuild review entered. RouteId={routeId}, CandidateSegments={review.CandidateSegments.Count}.");
             return true;
         }
 
@@ -392,7 +394,7 @@ namespace RoadSignsTools.Systems
             _savedRoutePreviewWaypoints.Clear();
             _savedRoutesViewActive = false;
             _statusMessage = message;
-            Mod.log.Info($"Road Naming: modify review entered. RouteId={routeId}, Waypoints={review.CandidateWaypoints.Count}, Segments={review.CandidateSegments.Count}.");
+            Mod.log.Info(() => $"Road Naming: modify review entered. RouteId={routeId}, Waypoints={review.CandidateWaypoints.Count}, Segments={review.CandidateSegments.Count}.");
             return true;
         }
 
@@ -434,7 +436,7 @@ namespace RoadSignsTools.Systems
             _savedRouteReview = null;
             SetSavedRoutesViewActive(true);
             _statusMessage = $"Canceled saved route review for route {routeId}.";
-            Mod.log.Info($"Road Naming: saved route review canceled. RouteId={routeId}.");
+            Mod.log.Info(() => $"Road Naming: saved route review canceled. RouteId={routeId}.");
             return true;
         }
 
@@ -442,7 +444,7 @@ namespace RoadSignsTools.Systems
         {
             var result = _metadataSystem.ReapplySavedRoute(routeId, out var message);
             _statusMessage = message;
-            Mod.log.Info($"Road Naming: saved route reapply requested. RouteId={routeId}, Result={result}, Message='{message}'.");
+            Mod.log.Info(() => $"Road Naming: saved route reapply requested. RouteId={routeId}, Result={result}, Message='{message}'.");
             return result;
         }
 
@@ -476,7 +478,7 @@ namespace RoadSignsTools.Systems
             _savedRoutePreviewWaypoints.Clear();
             _savedRoutesViewActive = true;
             _statusMessage = $"Road-name edit mode active for '{route.DisplayTitle}'. Use the vanilla road UI, then return to Saved Routes to keep those name changes.";
-            Mod.log.Info($"Road Naming: saved route road-name edit started. RouteId={routeId}, Segments={candidateSegments.Count}.");
+            Mod.log.Info(() => $"Road Naming: saved route road-name edit started. RouteId={routeId}, Segments={candidateSegments.Count}.");
             return true;
         }
 
@@ -493,7 +495,7 @@ namespace RoadSignsTools.Systems
             _roadNameEditRouteId = 0;
             _savedRoutesViewActive = true;
             _statusMessage = message;
-            Mod.log.Info($"Road Naming: saved route road-name edit finished. RouteId={routeId}, Result={result}, Message='{message}'.");
+            Mod.log.Info(() => $"Road Naming: saved route road-name edit finished. RouteId={routeId}, Result={result}, Message='{message}'.");
             return result;
         }
 
@@ -590,7 +592,7 @@ namespace RoadSignsTools.Systems
                     {
                         MarkModifyReviewDirty();
                         _statusMessage = _selectionController.BuildRouteInstruction();
-                        Mod.log.Info($"Road Naming: waypoint removed during edit. Waypoints={_selectionController.WaypointCount}, Segments={_selectionController.SelectedSegments.Count}");
+                        Mod.log.Info(() => $"Road Naming: waypoint removed during edit. Waypoints={_selectionController.WaypointCount}, Segments={_selectionController.SelectedSegments.Count}");
                     }
                     else
                     {
@@ -609,11 +611,11 @@ namespace RoadSignsTools.Systems
                     if (committed)
                     {
                         MarkModifyReviewDirty();
-                        Mod.log.Info($"Road Naming: waypoint edit committed. Waypoints={_selectionController.WaypointCount}, Segments={_selectionController.SelectedSegments.Count}");
+                        Mod.log.Info(() => $"Road Naming: waypoint edit committed. Waypoints={_selectionController.WaypointCount}, Segments={_selectionController.SelectedSegments.Count}");
                     }
                     else
                     {
-                        Mod.log.Warn($"Road Naming: waypoint edit rejected: {_selectionController.Warning}");
+                        Mod.log.Warn(() => $"Road Naming: waypoint edit rejected: {_selectionController.Warning}");
                     }
                 }
                 else
@@ -626,11 +628,11 @@ namespace RoadSignsTools.Systems
 
             if (leftClickPressed)
             {
-                Mod.log.Info($"Road Naming: click received. Hovered={HoveredSegment.Index}, Waypoints={WaypointCount}");
+                Mod.log.Info(() => $"Road Naming: click received. Hovered={HoveredSegment.Index}, Waypoints={WaypointCount}");
                 if (_selectionController.TryBeginEditFromHover())
                 {
                     _statusMessage = _selectionController.BuildRouteInstruction();
-                    Mod.log.Info($"Road Naming: waypoint edit started. ExistingWaypoint={_selectionController.HasHoveredRouteWaypoint}, Insertion={_selectionController.HasHoveredRouteInsertion}, Waypoints={WaypointCount}");
+                    Mod.log.Info(() => $"Road Naming: waypoint edit started. ExistingWaypoint={_selectionController.HasHoveredRouteWaypoint}, Insertion={_selectionController.HasHoveredRouteInsertion}, Waypoints={WaypointCount}");
                 }
                 else
                 {
@@ -644,7 +646,7 @@ namespace RoadSignsTools.Systems
                 {
                     MarkModifyReviewDirty();
                     _statusMessage = _selectionController.BuildRouteInstruction();
-                    Mod.log.Info($"Road Naming: hovered waypoint removed. Waypoints={_selectionController.WaypointCount}, Segments={_selectionController.SelectedSegments.Count}");
+                    Mod.log.Info(() => $"Road Naming: hovered waypoint removed. Waypoints={_selectionController.WaypointCount}, Segments={_selectionController.SelectedSegments.Count}");
                 }
                 else
                 {
@@ -677,7 +679,7 @@ namespace RoadSignsTools.Systems
                 {
                     var previewSegments = _selectionController.PreviewSegments;
                     var previewCount = previewSegments != null ? previewSegments.Count : 0;
-                    Mod.log.Info($"Road Naming: valid hover target detected. Segment={waypoint.Segment.Index}, PreviewSegments={previewCount}");
+                    Mod.log.Info(() => $"Road Naming: valid hover target detected. Segment={waypoint.Segment.Index}, PreviewSegments={previewCount}");
                 }
                 return;
             }

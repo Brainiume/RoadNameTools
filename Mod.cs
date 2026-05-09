@@ -8,6 +8,7 @@ using Game.SceneFlow;
 using RoadSignsTools.L10N;
 using RoadSignsTools.Settings;
 using RoadSignsTools.Systems;
+using System;
 using System.Reflection;
 
 namespace RoadSignsTools
@@ -27,7 +28,9 @@ namespace RoadSignsTools
 
         public string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString(4) ?? "0.0.0.0";
 
-        public static bool IsLoggingEnabled => Settings?.EnableLogging == true;
+        public static bool IsVerboseLoggingEnabled => Settings?.EnableLogging == true;
+
+        public static bool IsLoggingEnabled => IsVerboseLoggingEnabled;
 
         public void OnLoad(UpdateSystem updateSystem)
         {
@@ -50,7 +53,9 @@ namespace RoadSignsTools
 
             updateSystem.UpdateAt<SegmentMetadataSystem>(SystemUpdatePhase.Deserialize);
             updateSystem.UpdateAt<SegmentMetadataSystem>(SystemUpdatePhase.Serialize);
+            updateSystem.UpdateAfter<SegmentMetadataSystem, AggregateSystem>(SystemUpdatePhase.ModificationEnd);
             updateSystem.UpdateAt<RoadRouteToolSystem>(SystemUpdatePhase.ToolUpdate);
+            updateSystem.UpdateAt<RoadRouteToolTooltipSystem>(SystemUpdatePhase.UITooltip);
             updateSystem.UpdateAt<RoadRouteToolUISystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAfter<RoadSelectionInfoSectionSystem>(SystemUpdatePhase.UIUpdate);
             updateSystem.UpdateAt<RoadRouteOverlayGeometrySystem>(SystemUpdatePhase.Rendering);
@@ -100,10 +105,18 @@ namespace RoadSignsTools
 
             private static bool Enabled => Mod.IsLoggingEnabled;
 
+            public bool IsEnabled => Enabled;
+
             public void Info(object message)
             {
                 if (Enabled)
                     _inner.Info(message);
+            }
+
+            public void Info(Func<object> messageFactory)
+            {
+                if (Enabled && messageFactory != null)
+                    _inner.Info(messageFactory());
             }
 
             public void Warn(object message)
@@ -112,10 +125,22 @@ namespace RoadSignsTools
                     _inner.Warn(message);
             }
 
+            public void Warn(Func<object> messageFactory)
+            {
+                if (Enabled && messageFactory != null)
+                    _inner.Warn(messageFactory());
+            }
+
             public void Warn(System.Exception exception, object message)
             {
                 if (Enabled)
                     _inner.Warn(exception, message);
+            }
+
+            public void Warn(System.Exception exception, Func<object> messageFactory)
+            {
+                if (Enabled && messageFactory != null)
+                    _inner.Warn(exception, messageFactory());
             }
 
             public void Error(object message)
@@ -124,10 +149,22 @@ namespace RoadSignsTools
                     _inner.Error(message);
             }
 
+            public void Error(Func<object> messageFactory)
+            {
+                if (Enabled && messageFactory != null)
+                    _inner.Error(messageFactory());
+            }
+
             public void Error(System.Exception exception, object message)
             {
                 if (Enabled)
                     _inner.Error(exception, message);
+            }
+
+            public void Error(System.Exception exception, Func<object> messageFactory)
+            {
+                if (Enabled && messageFactory != null)
+                    _inner.Error(exception, messageFactory());
             }
         }
     }

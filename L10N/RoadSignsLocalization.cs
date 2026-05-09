@@ -109,7 +109,7 @@ namespace RoadSignsTools.L10N
             }
             catch (Exception exception)
             {
-                Mod.log.Warn(exception, $"Road Signs Tools localization load failed for '{localePath}'.");
+                Mod.log.Warn(exception, () => $"Road Signs Tools localization load failed for '{localePath}'.");
                 return false;
             }
         }

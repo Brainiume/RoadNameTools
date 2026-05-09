@@ -25,6 +25,8 @@ namespace RoadSignsTools.L10N
             public const string ModeAssignTooltip = "RoadSignsTools.UI[ModeAssignTooltip]";
             public const string ModeRemove = "RoadSignsTools.UI[ModeRemove]";
             public const string ModeRemoveTooltip = "RoadSignsTools.UI[ModeRemoveTooltip]";
+            public const string RenameToolClickAddWaypointTooltip = "Tools.INFO[RoadSignsTools.RenameToolClickAddWaypoint]";
+            public const string RenameToolDragMoveWaypointTooltip = "Tools.INFO[RoadSignsTools.RenameToolDragMoveWaypoint]";
             public const string RoadName = "RoadSignsTools.UI[RoadName]";
             public const string CurrentRouteSummaryAria = "RoadSignsTools.UI[CurrentRouteSummaryAria]";
             public const string Waypoints = "RoadSignsTools.UI[Waypoints]";
