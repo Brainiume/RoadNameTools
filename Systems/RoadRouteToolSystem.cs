@@ -3,17 +3,18 @@ using Game.Common;
 using Game.Net;
 using Game.Prefabs;
 using Game.Tools;
-using RoadSignsTools.Domain;
-using RoadSignsTools.Services;
+using AdvancedRoadNaming.Domain;
+using AdvancedRoadNaming.Services;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using UnityEngine.InputSystem;
 
-namespace RoadSignsTools.Systems
+namespace AdvancedRoadNaming.Systems
 {
     public sealed partial class RoadRouteToolSystem : ToolBaseSystem
     {
-        public const string ToolIdentifier = "RoadSignsTools.RouteBasedRoadNamingTool";
+        public const string ToolIdentifier = "AdvancedRoadNaming.RouteBasedRoadNamingTool";
 
         private SegmentMetadataSystem _metadataSystem;
         private RouteSelectionController _selectionController;
@@ -293,9 +294,6 @@ namespace RoadSignsTools.Systems
                 case RoadRouteToolMode.RenameSelectedSegments:
                     result = _metadataSystem.ApplyRename(_selectionController.SelectedSegments, _inputText, out message);
                     break;
-                case RoadRouteToolMode.RemoveMajorRouteNumber:
-                    result = _metadataSystem.RemoveRouteNumber(_selectionController.SelectedSegments, _inputText, out message);
-                    break;
                 default:
                     result = _metadataSystem.ApplyRouteNumber(_selectionController.SelectedSegments, _inputText, _routeNumberPlacement, out message);
                     break;
@@ -551,9 +549,6 @@ namespace RoadSignsTools.Systems
             if (_mode == RoadRouteToolMode.RenameSelectedSegments)
                 return $"New segment name: {(_inputText ?? string.Empty).Trim()} | {routeSummary}";
 
-            if (_mode == RoadRouteToolMode.RemoveMajorRouteNumber)
-                return $"Remove route code: {(_inputText ?? string.Empty).Trim()} | {routeSummary}";
-
             return $"Base names preserved | Route code to apply: {(_inputText ?? string.Empty).Trim()} | {routeSummary}";
         }
 
@@ -582,7 +577,7 @@ namespace RoadSignsTools.Systems
 
             var leftClickPressed = _isRunning && applyAction != null && applyAction.WasPressedThisFrame();
             var leftClickReleased = _isRunning && applyAction != null && applyAction.WasReleasedThisFrame();
-            var rightClickPressed = _isRunning && cancelAction != null && cancelAction.WasPressedThisFrame();
+            var rightClickPressed = _isRunning && Mouse.current?.rightButton.wasPressedThisFrame == true;
 
             if (_selectionController.HasActiveWaypointEdit)
             {

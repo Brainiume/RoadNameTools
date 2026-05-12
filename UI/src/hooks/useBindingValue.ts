@@ -5,8 +5,7 @@ export function useBindingValue<T>(binding: ValueBinding<T>, fallbackValue: T): 
     const [value, setValue] = useState<T>(() => {
         try {
             return binding.value ?? fallbackValue;
-        } catch (error) {
-            console.warn("[RoadSignsTools] Binding value unavailable; using fallback.", error);
+        } catch {
             return fallbackValue;
         }
     });
@@ -16,8 +15,7 @@ export function useBindingValue<T>(binding: ValueBinding<T>, fallbackValue: T): 
             const subscription = binding.subscribe(setValue);
             setValue(subscription.value ?? fallbackValue);
             return () => subscription.dispose();
-        } catch (error) {
-            console.warn("[RoadSignsTools] Binding subscription unavailable; using fallback.", error);
+        } catch {
             setValue(fallbackValue);
             return undefined;
         }

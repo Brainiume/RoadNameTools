@@ -3,7 +3,7 @@ import { FocusDisabled } from "cs2/input";
 import { Button, Icon, Tooltip } from "cs2/ui";
 import { panelActions } from "bindings";
 import { DelayedTooltip } from "components/DelayedTooltip";
-import { useRoadSignsLocalization } from "localization";
+import { useAdvancedRoadNamingLocalization } from "localization";
 import styles from "./advancedRoadNamingContent.module.scss";
 
 const undergroundIcon = "Media/Tools/Net Tool/Underground.svg";
@@ -17,7 +17,7 @@ interface AdvancedRoadNamingContentProps {
 }
 
 export function AdvancedRoadNamingContent(props: AdvancedRoadNamingContentProps) {
-    const { t } = useRoadSignsLocalization();
+    const { t } = useAdvancedRoadNamingLocalization();
 
     const onInputChange = (event: ChangeEvent<HTMLInputElement>) => {
         panelActions.setInput(event.currentTarget.value);
@@ -52,7 +52,7 @@ export function AdvancedRoadNamingContent(props: AdvancedRoadNamingContentProps)
             <FocusDisabled>
                 <div className={styles.actions}>
                     <div className={styles.actionButtonCell}>
-                        <DelayedTooltip tooltip={t("RoadSignsTools.UI[UndoWaypointTooltip]")}>
+                        <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[UndoWaypointTooltip]")}>
                             <Button
                                 variant="flat"
                                 className={styles.actionButton}
@@ -64,7 +64,7 @@ export function AdvancedRoadNamingContent(props: AdvancedRoadNamingContentProps)
                         </DelayedTooltip>
                     </div>
                     <div className={styles.actionButtonCell}>
-                        <DelayedTooltip tooltip={t("RoadSignsTools.UI[ClearTooltip]")}>
+                        <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[ClearTooltip]")}>
                             <Button
                                 variant="flat"
                                 className={styles.actionButton}
@@ -76,7 +76,7 @@ export function AdvancedRoadNamingContent(props: AdvancedRoadNamingContentProps)
                         </DelayedTooltip>
                     </div>
                     <div className={styles.actionButtonCell}>
-                        <DelayedTooltip tooltip={t("RoadSignsTools.UI[ApplyTooltip]")}>
+                        <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[ApplyTooltip]")}>
                             <Button
                                 variant="flat"
                                 className={styles.actionButton}

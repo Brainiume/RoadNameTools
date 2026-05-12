@@ -5,13 +5,12 @@ import { panelActions } from "bindings";
 import { DelayedTooltip } from "components/DelayedTooltip";
 import { PRESET_PREFIXES } from "constants";
 import { normalizeToken, parseRouteCode, useRouteCodeDraft } from "hooks/useRouteCodeDraft";
-import { useRoadSignsLocalization } from "localization";
-import { PrefixType, RouteNumberPlacement, RouteToolMode } from "types";
+import { useAdvancedRoadNamingLocalization } from "localization";
+import { PrefixType, RouteNumberPlacement } from "types";
 import styles from "./advancedRoadRoutesContent.module.scss";
 
 interface AdvancedRoadRoutesContentProps {
     input: string;
-    mode: RouteToolMode;
     routeNumberPlacement: RouteNumberPlacement;
     savedRouteInputs: string[];
     canUndo: boolean;
@@ -20,9 +19,8 @@ interface AdvancedRoadRoutesContentProps {
 }
 
 export function AdvancedRoadRoutesContent(props: AdvancedRoadRoutesContentProps) {
-    const { t } = useRoadSignsLocalization();
+    const { t } = useAdvancedRoadNamingLocalization();
     const { draft, updateDraft, composed } = useRouteCodeDraft(props.input);
-    const isRemoveMode = props.mode === "RemoveMajorRouteNumber";
     const resultPreview = composed
         ? props.routeNumberPlacement === "BeforeBaseName"
             ? `${composed} - Base name`
@@ -61,6 +59,7 @@ export function AdvancedRoadRoutesContent(props: AdvancedRoadRoutesContentProps)
 
     return (
         <div className={styles.content}>
+            <div className={styles.wipNotice}>{t("AdvancedRoadNaming.UI[AdvancedRoadRoutesWip]")}</div>
             <div className={styles.routeFoldouts}>
                 <PanelFoldout
                     header={(
@@ -96,7 +95,7 @@ export function AdvancedRoadRoutesContent(props: AdvancedRoadRoutesContentProps)
                                         </div>
                                     ))}
                                     <div className={`${styles.routeButtonCell} ${styles.routeButtonCellWide}`}>
-                                        <DelayedTooltip tooltip={t("RoadSignsTools.UI[CustomPrefixTooltip]")}>
+                                        <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[CustomPrefixTooltip]")}>
                                             <Button
                                                 variant="flat"
                                                 focusKey={FOCUS_AUTO}
@@ -122,62 +121,60 @@ export function AdvancedRoadRoutesContent(props: AdvancedRoadRoutesContentProps)
                                     type="text"
                                     value={draft.customPrefix}
                                     onChange={(event) => setCustomPrefix(event.currentTarget.value)}
-                                    aria-label={t("RoadSignsTools.UI[CustomRoutePrefixAria]")}
+                                    aria-label={t("AdvancedRoadNaming.UI[CustomRoutePrefixAria]")}
                                 />
                             )}
                         />
                     )}
                 </PanelFoldout>
-                {!isRemoveMode && (
-                    <PanelFoldout
-                        header={(
-                            <PanelSectionRow
-                                uppercase={true}
-                                disableFocus={true}
-                                left="Route Position"
-                            />
-                        )}
-                        initialExpanded={true}
-                        expandFromContent={true}
-                        focusKey={FOCUS_AUTO}
-                    >
+                <PanelFoldout
+                    header={(
                         <PanelSectionRow
-                            className={`${styles.routePanelRow} ${styles.controlOnlyRow}`}
+                            uppercase={true}
                             disableFocus={true}
-                            subRow={true}
-                            left={(
-                                <FocusDisabled>
-                                    <div className={`${styles.routeButtonRow} ${styles.positionButtonRow}`}>
-                                        <div className={styles.routeButtonCell}>
-                                            <DelayedTooltip tooltip={t("RoadSignsTools.UI[PositionBeforeTooltip]")}>
-                                                <Button
-                                                    variant="flat"
-                                                    focusKey={FOCUS_AUTO}
-                                                    className={`${styles.routeChoiceButton} ${props.routeNumberPlacement === "BeforeBaseName" ? styles.active : ""}`}
-                                                    onSelect={() => panelActions.setRouteNumberPlacement("BeforeBaseName")}
-                                                >
-                                                    Before
-                                                </Button>
-                                            </DelayedTooltip>
-                                        </div>
-                                        <div className={styles.routeButtonCell}>
-                                            <DelayedTooltip tooltip={t("RoadSignsTools.UI[PositionAfterTooltip]")}>
-                                                <Button
-                                                    variant="flat"
-                                                    focusKey={FOCUS_AUTO}
-                                                    className={`${styles.routeChoiceButton} ${props.routeNumberPlacement === "AfterBaseName" ? styles.active : ""}`}
-                                                    onSelect={() => panelActions.setRouteNumberPlacement("AfterBaseName")}
-                                                >
-                                                    After
-                                                </Button>
-                                            </DelayedTooltip>
-                                        </div>
-                                    </div>
-                                </FocusDisabled>
-                            )}
+                            left="Route Position"
                         />
-                    </PanelFoldout>
-                )}
+                    )}
+                    initialExpanded={true}
+                    expandFromContent={true}
+                    focusKey={FOCUS_AUTO}
+                >
+                    <PanelSectionRow
+                        className={`${styles.routePanelRow} ${styles.controlOnlyRow}`}
+                        disableFocus={true}
+                        subRow={true}
+                        left={(
+                            <FocusDisabled>
+                                <div className={`${styles.routeButtonRow} ${styles.positionButtonRow}`}>
+                                    <div className={styles.routeButtonCell}>
+                                        <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[PositionBeforeTooltip]")}>
+                                            <Button
+                                                variant="flat"
+                                                focusKey={FOCUS_AUTO}
+                                                className={`${styles.routeChoiceButton} ${props.routeNumberPlacement === "BeforeBaseName" ? styles.active : ""}`}
+                                                onSelect={() => panelActions.setRouteNumberPlacement("BeforeBaseName")}
+                                            >
+                                                Before
+                                            </Button>
+                                        </DelayedTooltip>
+                                    </div>
+                                    <div className={styles.routeButtonCell}>
+                                        <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[PositionAfterTooltip]")}>
+                                            <Button
+                                                variant="flat"
+                                                focusKey={FOCUS_AUTO}
+                                                className={`${styles.routeChoiceButton} ${props.routeNumberPlacement === "AfterBaseName" ? styles.active : ""}`}
+                                                onSelect={() => panelActions.setRouteNumberPlacement("AfterBaseName")}
+                                            >
+                                                After
+                                            </Button>
+                                        </DelayedTooltip>
+                                    </div>
+                                </div>
+                            </FocusDisabled>
+                        )}
+                    />
+                </PanelFoldout>
 
                 <PanelFoldout
                     header={(
@@ -197,60 +194,56 @@ export function AdvancedRoadRoutesContent(props: AdvancedRoadRoutesContentProps)
                         subRow={true}
                         left={(
                             <div className={styles.sectionInputLine}>
-                                {!isRemoveMode && (
-                                    <div className={styles.inlineActionCell}>
-                                        <DelayedTooltip tooltip={t("RoadSignsTools.UI[AutoRouteNumberTooltip]")}>
-                                            <Button
-                                                variant="flat"
-                                                className={styles.inlineActionButton}
-                                                onSelect={useAutoNumber}
-                                            >
-                                                Auto
-                                            </Button>
-                                        </DelayedTooltip>
-                                    </div>
-                                )}
+                                <div className={styles.inlineActionCell}>
+                                    <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[AutoRouteNumberTooltip]")}>
+                                        <Button
+                                            variant="flat"
+                                            className={styles.inlineActionButton}
+                                            onSelect={useAutoNumber}
+                                        >
+                                            Auto
+                                        </Button>
+                                    </DelayedTooltip>
+                                </div>
                                 <input
                                     className={styles.textInput}
                                     type="text"
                                     value={draft.numberPart}
                                     onChange={setNumber}
-                                    aria-label={t("RoadSignsTools.UI[CustomRouteNumberAria]")}
+                                    aria-label={t("AdvancedRoadNaming.UI[CustomRouteNumberAria]")}
                                 />
                             </div>
                         )}
                     />
                 </PanelFoldout>
 
-                {!isRemoveMode && (
-                    <PanelFoldout
-                        header={(
-                            <PanelSectionRow
-                                uppercase={true}
-                                disableFocus={true}
-                                left="Result"
-                            />
-                        )}
-                        initialExpanded={true}
-                        expandFromContent={true}
-                        focusKey={FOCUS_AUTO}
-                    >
+                <PanelFoldout
+                    header={(
                         <PanelSectionRow
-                            className={styles.routePanelRow}
+                            uppercase={true}
                             disableFocus={true}
-                            subRow={true}
-                            left="Preview"
-                            right={<div className={styles.resultText}>{resultPreview}</div>}
+                            left="Result"
                         />
-                    </PanelFoldout>
-                )}
+                    )}
+                    initialExpanded={true}
+                    expandFromContent={true}
+                    focusKey={FOCUS_AUTO}
+                >
+                    <PanelSectionRow
+                        className={styles.routePanelRow}
+                        disableFocus={true}
+                        subRow={true}
+                        left="Preview"
+                        right={<div className={styles.resultText}>{resultPreview}</div>}
+                    />
+                </PanelFoldout>
             </div>
 
             <div className={styles.divider} />
             <FocusDisabled>
                 <div className={styles.actions}>
                     <div className={styles.actionButtonCell}>
-                        <DelayedTooltip tooltip={t("RoadSignsTools.UI[UndoWaypointTooltip]")}>
+                        <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[UndoWaypointTooltip]")}>
                             <Button
                                 variant="flat"
                                 className={styles.actionButton}
@@ -262,7 +255,7 @@ export function AdvancedRoadRoutesContent(props: AdvancedRoadRoutesContentProps)
                         </DelayedTooltip>
                     </div>
                     <div className={styles.actionButtonCell}>
-                        <DelayedTooltip tooltip={t("RoadSignsTools.UI[ClearTooltip]")}>
+                        <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[ClearTooltip]")}>
                             <Button
                                 variant="flat"
                                 className={styles.actionButton}
@@ -274,7 +267,7 @@ export function AdvancedRoadRoutesContent(props: AdvancedRoadRoutesContentProps)
                         </DelayedTooltip>
                     </div>
                     <div className={styles.actionButtonCell}>
-                        <DelayedTooltip tooltip={t("RoadSignsTools.UI[ApplyTooltip]")}>
+                        <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[ApplyTooltip]")}>
                             <Button
                                 variant="flat"
                                 className={styles.actionButton}
@@ -293,16 +286,16 @@ export function AdvancedRoadRoutesContent(props: AdvancedRoadRoutesContentProps)
 
 function prefixDescription(prefix: string, t: (key: string) => string): string {
     if (prefix === "M") {
-        return t("RoadSignsTools.UI[PrefixDescriptionM]");
+        return t("AdvancedRoadNaming.UI[PrefixDescriptionM]");
     }
     if (prefix === "A") {
-        return t("RoadSignsTools.UI[PrefixDescriptionA]");
+        return t("AdvancedRoadNaming.UI[PrefixDescriptionA]");
     }
     if (prefix === "B") {
-        return t("RoadSignsTools.UI[PrefixDescriptionB]");
+        return t("AdvancedRoadNaming.UI[PrefixDescriptionB]");
     }
 
-    return t("RoadSignsTools.UI[PrefixDescriptionC]");
+    return t("AdvancedRoadNaming.UI[PrefixDescriptionC]");
 }
 
 function nextRouteNumberForPrefix(prefixType: PrefixType, customPrefix: string, routeInputs: string[]): string {

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using RoadSignsTools.Domain;
+using AdvancedRoadNaming.Domain;
 
-namespace RoadSignsTools.Services
+namespace AdvancedRoadNaming.Services
 {
     public sealed class SegmentDisplayNameResolver
     {

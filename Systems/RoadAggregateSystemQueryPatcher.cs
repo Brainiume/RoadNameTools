@@ -2,10 +2,10 @@ using System;
 using System.Linq;
 using System.Reflection;
 using Game.Net;
-using RoadSignsTools.Components;
+using AdvancedRoadNaming.Components;
 using Unity.Entities;
 
-namespace RoadSignsTools.Systems
+namespace AdvancedRoadNaming.Systems
 {
     internal static class RoadAggregateSystemQueryPatcher
     {
@@ -34,7 +34,7 @@ namespace RoadSignsTools.Systems
             }
 
             var queryDescs = originalQuery.GetEntityQueryDescs();
-            var markerType = ComponentType.ReadOnly<RoadSignsAggregateMember>();
+            var markerType = ComponentType.ReadOnly<AdvancedRoadNamingAggregateMember>();
             var changed = false;
             for (var i = 0; i < queryDescs.Length; i++)
             {
@@ -48,7 +48,7 @@ namespace RoadSignsTools.Systems
 
             if (!changed)
             {
-                Mod.log.Info("Road Naming: AggregateSystem query already excludes RoadSigns managed aggregate edges.");
+                Mod.log.Info("Road Naming: AggregateSystem query already excludes Advanced Road Naming managed aggregate edges.");
                 return;
             }
 
@@ -69,7 +69,7 @@ namespace RoadSignsTools.Systems
             var modifiedQuery = (EntityQuery)getQueryMethod.Invoke(aggregateSystem, new object[] { queryDescs });
             queryField.SetValue(aggregateSystem, modifiedQuery);
             aggregateSystem.RequireForUpdate(modifiedQuery);
-            Mod.log.Info("Road Naming: AggregateSystem query patched to ignore RoadSigns managed aggregate edges.");
+            Mod.log.Info("Road Naming: AggregateSystem query patched to ignore Advanced Road Naming managed aggregate edges.");
         }
     }
 }

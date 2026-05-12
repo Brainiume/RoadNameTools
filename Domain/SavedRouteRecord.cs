@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Colossal.UI.Binding;
 using Unity.Entities;
 
-namespace RoadSignsTools.Domain
+namespace AdvancedRoadNaming.Domain
 {
     public sealed class SavedRouteRecord : IJsonWritable
     {

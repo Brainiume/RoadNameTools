@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Game.Net;
 using Unity.Entities;
 
-namespace RoadSignsTools.Services
+namespace AdvancedRoadNaming.Services
 {
     public sealed class RoadNetworkPathingService
     {

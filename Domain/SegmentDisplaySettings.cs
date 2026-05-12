@@ -1,4 +1,4 @@
-namespace RoadSignsTools.Domain
+namespace AdvancedRoadNaming.Domain
 {
     public sealed class SegmentDisplaySettings
     {

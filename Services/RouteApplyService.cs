@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using RoadSignsTools.Domain;
+using AdvancedRoadNaming.Domain;
 using Unity.Entities;
 
-namespace RoadSignsTools.Services
+namespace AdvancedRoadNaming.Services
 {
     public sealed class RouteApplyService
     {
@@ -98,43 +98,6 @@ namespace RoadSignsTools.Services
             }
 
             message = $"Applied {routeCode} to {visited} committed route segment(s); {changed} segment(s) changed.";
-            _logInfo(message);
-            return visited > 0;
-        }
-
-        public bool RemoveRouteNumber(IReadOnlyList<Entity> selectedSegments, string routeCodeInput, SegmentDisplaySettings settings, out string message)
-        {
-            if (selectedSegments == null || selectedSegments.Count == 0)
-            {
-                message = "Create a committed waypoint route before applying.";
-                return false;
-            }
-
-            if (!_routeCodeService.TryNormalize(routeCodeInput, out var routeCode, out message))
-                return false;
-
-            var changed = 0;
-            var visited = 0;
-            foreach (var segment in selectedSegments)
-            {
-                if (!_validation.IsValidRoadSegment(segment))
-                    continue;
-
-                visited++;
-                if (!_repository.TryGet(segment, out var metadata))
-                    continue;
-
-                if (metadata.RouteNumbers.RemoveAll(route => string.Equals(route, routeCode, StringComparison.OrdinalIgnoreCase)) > 0)
-                {
-                    changed++;
-                    metadata.Touch();
-                    WriteResolvedName(segment, metadata, settings);
-                }
-            }
-
-            message = changed > 0
-                ? $"Removed {routeCode} from {changed} of {visited} committed route segment(s)."
-                : $"No committed route segments contained {routeCode}.";
             _logInfo(message);
             return visited > 0;
         }

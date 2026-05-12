@@ -1,9 +1,8 @@
-namespace RoadSignsTools.Domain
+namespace AdvancedRoadNaming.Domain
 {
     public enum RoadRouteToolMode
     {
         RenameSelectedSegments = 0,
-        AssignMajorRouteNumber = 1,
-        RemoveMajorRouteNumber = 2
+        AssignMajorRouteNumber = 1
     }
 }

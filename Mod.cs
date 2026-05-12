@@ -5,24 +5,24 @@ using Game;
 using Game.Modding;
 using Game.Net;
 using Game.SceneFlow;
-using RoadSignsTools.L10N;
-using RoadSignsTools.Settings;
-using RoadSignsTools.Systems;
+using AdvancedRoadNaming.L10N;
+using AdvancedRoadNaming.Settings;
+using AdvancedRoadNaming.Systems;
 using System;
 using System.Reflection;
 
-namespace RoadSignsTools
+namespace AdvancedRoadNaming
 {
     public class Mod : IMod
     {
-        public static readonly string Id = nameof(RoadSignsTools);
-        private static readonly ILog BaseLog = LogManager.GetLogger($"{nameof(RoadSignsTools)}.{nameof(Mod)}").SetShowsErrorsInUI(false);
+        public static readonly string Id = nameof(AdvancedRoadNaming);
+        private static readonly ILog BaseLog = LogManager.GetLogger($"{nameof(AdvancedRoadNaming)}.{nameof(Mod)}").SetShowsErrorsInUI(false);
 
         public static readonly ConditionalLog log = new ConditionalLog(BaseLog);
 
         public static Mod Instance { get; private set; }
 
-        public static RoadSignsToolSettings Settings { get; private set; }
+        public static AdvancedRoadNamingSettings Settings { get; private set; }
 
         public static string ModRootPath { get; private set; }
 
@@ -45,11 +45,10 @@ namespace RoadSignsTools
 
             RegisterUiAssetHost();
 
-            Settings = new RoadSignsToolSettings(this);
-            RoadSignsLocalization.Register(this, Settings);
-            Settings.RegisterKeyBindings();
+            Settings = new AdvancedRoadNamingSettings(this);
+            AdvancedRoadNamingLocalization.Register(this, Settings);
             Settings.RegisterInOptionsUI();
-            AssetDatabase.global.LoadSettings(RoadSignsToolSettings.SettingsAssetName, Settings, new RoadSignsToolSettings(this));
+            AssetDatabase.global.LoadSettings(AdvancedRoadNamingSettings.SettingsAssetName, Settings, new AdvancedRoadNamingSettings(this));
 
             updateSystem.UpdateAt<SegmentMetadataSystem>(SystemUpdatePhase.Deserialize);
             updateSystem.UpdateAt<SegmentMetadataSystem>(SystemUpdatePhase.Serialize);
@@ -87,7 +86,7 @@ namespace RoadSignsTools
         public void OnDispose()
         {
             log.Info(nameof(OnDispose));
-            RoadSignsLocalization.Unregister();
+            AdvancedRoadNamingLocalization.Unregister();
             Settings?.UnregisterInOptionsUI();
             Settings = null;
             ModRootPath = null;

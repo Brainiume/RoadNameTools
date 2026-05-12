@@ -16,7 +16,9 @@
 	
 		<!--The file where mod information which is required for publishing mod on PDX mods are stored-->
 		<PublishConfigurationPath>Properties\PublishConfiguration.xml</PublishConfigurationPath>
-		<Title>Road Signs Tools</Title>
+		<Title>Advanced Road Naming</Title>
+		<AssemblyName>AdvancedRoadNaming</AssemblyName>
+		<RootNamespace>AdvancedRoadNaming</RootNamespace>
 		<Version>$("0.1.0")</Version>
 		<Copyright>Copyright (c) 2026</Copyright>
 		<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
@@ -90,6 +92,9 @@
 		<Reference Include="Unity.Mathematics">
 			<Private>false</Private>
 		</Reference>
+		<Reference Include="Unity.InputSystem">
+			<Private>false</Private>
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -115,15 +120,15 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
-    <Target Name="CopyRoadSignsToolAssets" AfterTargets="DeployWIP" Condition="'$(DeployDir)' != ''">
-        <Message Text="[CopyRoadSignsToolAssets]" Importance="high" />
+    <Target Name="CopyAdvancedRoadNamingAssets" AfterTargets="DeployWIP" Condition="'$(DeployDir)' != ''">
+        <Message Text="[CopyAdvancedRoadNamingAssets]" Importance="high" />
         <ItemGroup>
-            <_RoadSignsToolAssets Include="$(ProjectDir)Assets\**\*.*" />
+            <_AdvancedRoadNamingAssets Include="$(ProjectDir)Assets\**\*.*" />
         </ItemGroup>
-        <Copy SourceFiles="@(_RoadSignsToolAssets)" DestinationFolder="$(DeployDir)\Assets\%(RecursiveDir)" SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(_AdvancedRoadNamingAssets)" DestinationFolder="$(DeployDir)\Assets\%(RecursiveDir)" SkipUnchangedFiles="true" />
     </Target>
-    <Target Name="BuildRoadSignsToolTemplateUi" AfterTargets="DeployWIP" Condition="'$(DeployDir)' != ''">
-        <Message Text="[BuildRoadSignsToolTemplateUi] Rebuilding template UI bundle into $(DeployDir)" Importance="high" />
+    <Target Name="BuildAdvancedRoadNamingTemplateUi" AfterTargets="DeployWIP" Condition="'$(DeployDir)' != ''">
+        <Message Text="[BuildAdvancedRoadNamingTemplateUi] Rebuilding template UI bundle into $(DeployDir)" Importance="high" />
         <Exec Command="npm --prefix &quot;$(ProjectDir)UI&quot; run build" WorkingDirectory="$(ProjectDir)" />
     </Target>
 

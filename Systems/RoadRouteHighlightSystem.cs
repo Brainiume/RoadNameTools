@@ -5,7 +5,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace RoadSignsTools.Systems
+namespace AdvancedRoadNaming.Systems
 {
     public sealed partial class RoadRouteHighlightSystem : GameSystemBase
     {

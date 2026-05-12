@@ -1,33 +1,27 @@
 using Colossal.IO.AssetDatabase;
-using Game.Input;
 using Game.Modding;
 using Game.Settings;
 using Game.UI.Widgets;
-using RoadSignsTools.Domain;
+using AdvancedRoadNaming.Domain;
 
-namespace RoadSignsTools.Settings
+namespace AdvancedRoadNaming.Settings
 {
-    [FileLocation("RoadSignsTools")]
-    [SettingsUITabOrder(GeneralTab, KeybindingsTab)]
-    [SettingsUIGroupOrder(DisplayGroup, InterfaceGroup, AdvancedGroup, AboutGroup, ResetGroup, ControlsGroup, KeybindingResetGroup)]
-    [SettingsUIShowGroupName(DisplayGroup, InterfaceGroup, AdvancedGroup, AboutGroup, ResetGroup, ControlsGroup, KeybindingResetGroup)]
-    [SettingsUIKeyboardAction(KeyBinding.ToggleTool, Usages.kDefaultUsage, Usages.kToolUsage)]
-    public sealed partial class RoadSignsToolSettings : ModSetting
+    [FileLocation("ModsSettings\\AdvancedRoadNaming")]
+    [SettingsUITabOrder(GeneralTab)]
+    [SettingsUIGroupOrder(DisplayGroup, AdvancedGroup, AboutGroup, ResetGroup)]
+    [SettingsUIShowGroupName(DisplayGroup, AdvancedGroup, AboutGroup, ResetGroup)]
+    public sealed partial class AdvancedRoadNamingSettings : ModSetting
     {
-        internal const string SettingsAssetName = "Road Signs Tools Settings";
+        internal const string SettingsAssetName = "AdvancedRoadNaming";
 
         public const string GeneralTab = "General";
-        public const string KeybindingsTab = "Keybindings";
 
         public const string DisplayGroup = "Display";
-        public const string InterfaceGroup = "Interface";
         public const string AdvancedGroup = "Advanced";
         public const string AboutGroup = "About";
         public const string ResetGroup = "Reset";
-        public const string ControlsGroup = "Controls";
-        public const string KeybindingResetGroup = "KeybindingReset";
 
-        public RoadSignsToolSettings(IMod mod)
+        public AdvancedRoadNamingSettings(IMod mod)
             : base(mod)
         {
             SetDefaults();
@@ -45,11 +39,8 @@ namespace RoadSignsTools.Settings
         public bool AllowMultipleRouteNumbers { get; set; }
 
         [SettingsUISection(GeneralTab, DisplayGroup)]
-        [SettingsUIDropdown(typeof(RoadSignsToolSettings), nameof(GetOrderingModeOptions))]
+        [SettingsUIDropdown(typeof(AdvancedRoadNamingSettings), nameof(GetOrderingModeOptions))]
         public RouteNumberOrderingMode OrderingMode { get; set; }
-
-        [SettingsUISection(GeneralTab, InterfaceGroup)]
-        public bool ShowTopLeftLauncherButton { get; set; }
 
         [SettingsUISection(GeneralTab, AdvancedGroup)]
         public bool EnableLogging { get; set; }
@@ -75,7 +66,6 @@ namespace RoadSignsTools.Settings
             RouteNumberSeparator = " / ";
             AllowMultipleRouteNumbers = true;
             OrderingMode = RouteNumberOrderingMode.InsertionOrder;
-            ShowTopLeftLauncherButton = true;
             EnableLogging = false;
         }
 
@@ -112,9 +102,5 @@ namespace RoadSignsTools.Settings
             };
         }
 
-        internal static class KeyBinding
-        {
-            internal const string ToggleTool = "ToggleRoadSignsTools";
-        }
     }
 }

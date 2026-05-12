@@ -1,10 +1,10 @@
 using Game.Tools;
 using Game.UI.Localization;
 using Game.UI.Tooltip;
-using RoadSignsTools.Domain;
-using RoadSignsTools.L10N;
+using AdvancedRoadNaming.Domain;
+using AdvancedRoadNaming.L10N;
 
-namespace RoadSignsTools.Systems
+namespace AdvancedRoadNaming.Systems
 {
     public sealed partial class RoadRouteToolTooltipSystem : TooltipSystemBase
     {
@@ -20,14 +20,14 @@ namespace RoadSignsTools.Systems
             _routeTool = World.GetOrCreateSystemManaged<RoadRouteToolSystem>();
             _addWaypointTooltip = new StringTooltip
             {
-                path = "roadSignsToolsRenameAddWaypoint",
-                value = LocalizedString.IdWithFallback(RoadSignsLocalization.UIKeys.RenameToolClickAddWaypointTooltip, "Click to add waypoint"),
+                path = "AdvancedRoadNamingRenameAddWaypoint",
+                value = LocalizedString.IdWithFallback(AdvancedRoadNamingLocalization.UIKeys.RenameToolClickAddWaypointTooltip, "Click to add waypoint"),
                 color = TooltipColor.Info
             };
             _moveWaypointTooltip = new StringTooltip
             {
-                path = "roadSignsToolsRenameMoveWaypoint",
-                value = LocalizedString.IdWithFallback(RoadSignsLocalization.UIKeys.RenameToolDragMoveWaypointTooltip, "Drag to move waypoint"),
+                path = "AdvancedRoadNamingRenameMoveWaypoint",
+                value = LocalizedString.IdWithFallback(AdvancedRoadNamingLocalization.UIKeys.RenameToolDragMoveWaypointTooltip, "Drag to move waypoint"),
                 color = TooltipColor.Info
             };
         }

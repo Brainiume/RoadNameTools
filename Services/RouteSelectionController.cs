@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using RoadSignsTools.Domain;
+using AdvancedRoadNaming.Domain;
 using Unity.Entities;
 using Unity.Mathematics;
 
-namespace RoadSignsTools.Services
+namespace AdvancedRoadNaming.Services
 {
     public sealed class RouteSelectionController
     {

@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using Colossal.Mathematics;
 using Game.Net;
-using RoadSignsTools.Domain;
+using AdvancedRoadNaming.Domain;
 using Unity.Entities;
 using Unity.Mathematics;
 
-namespace RoadSignsTools.Services
+namespace AdvancedRoadNaming.Services
 {
     public static class RouteOverlayGeometryBuilder
     {

@@ -1,7 +1,7 @@
 declare module "cs2/modding" {
   import { ComponentType } from 'react';
   
-  export type ModuleRegistryExtend = <T extends ComponentType<any>>(curr: T) => (props: any) => JSX.Element;
+  export type ModuleRegistryExtend = (currentValue: any) => any;
   export type ModuleRegistryAppend = ComponentType<{}> | (() => JSX.Element);
   export type AppendHookTargets = "Menu" | "Editor" | "Game" | "GameTopLeft" | "GameTopRight" | "GameBottomRight";
   export type ModuleRegistry = {
@@ -19,20 +19,20 @@ declare module "cs2/modding" {
   	reset(): void;
   };
   export type ModRegistrar = (moduleRegistry: ModuleRegistry) => void;
-  export export const findModule: (query: string | RegExp) => [
+  export const findModule: (query: string | RegExp) => [
   	path: string,
   	...exports: string[]
   ][];
-  export export const getModule: (modulePath: string, exportName: string) => any;
+  export const getModule: (modulePath: string, exportName: string) => any;
   // https://coherent-labs.com/Documentation/cpp-gameface/d1/dea/shape_morphing.html
   // https://coherent-labs.com/Documentation/cpp-gameface/d4/d08/interface_morph_animation.html
-  export export interface HTMLImageElement {
+  export interface HTMLImageElement {
   	getSrcSVGAnimation(): MorphAnimation | null;
   }
-  export export interface Element {
+  export interface Element {
   	getMaskSVGAnimation(): MorphAnimation | null;
   }
-  export export interface MorphAnimation {
+  export interface MorphAnimation {
   	currentTime: number;
   	playbackRate: number;
   	play(): void;

@@ -1,7 +1,7 @@
 using Colossal.Mathematics;
 using Unity.Mathematics;
 
-namespace RoadSignsTools.Services
+namespace AdvancedRoadNaming.Services
 {
     public static class RouteOverlayMath
     {

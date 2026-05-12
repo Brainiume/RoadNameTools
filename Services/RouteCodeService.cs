@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace RoadSignsTools.Services
+namespace AdvancedRoadNaming.Services
 {
     public sealed class RouteCodeService
     {

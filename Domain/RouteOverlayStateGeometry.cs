@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Colossal.Mathematics;
 using Unity.Mathematics;
 
-namespace RoadSignsTools.Domain
+namespace AdvancedRoadNaming.Domain
 {
     public sealed class RouteOverlayStateGeometry
     {

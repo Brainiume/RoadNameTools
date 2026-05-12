@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Unity.Entities;
 
-namespace RoadSignsTools.Domain
+namespace AdvancedRoadNaming.Domain
 {
     public sealed class SavedRouteReviewSession
     {

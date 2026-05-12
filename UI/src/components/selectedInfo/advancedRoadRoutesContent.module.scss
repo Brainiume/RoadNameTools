@@ -4,6 +4,16 @@
     padding: 0 32rem 28rem;
 }
 
+.wipNotice {
+    margin: 10rem 0 0;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: var(--fontSizeS);
+    font-weight: 700;
+    line-height: 24rem;
+    text-align: center;
+    text-transform: uppercase;
+}
+
 .textInput {
     flex: 1 1 auto;
     min-width: 0;

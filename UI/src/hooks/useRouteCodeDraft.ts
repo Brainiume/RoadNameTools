@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { panelActions } from "bindings";
 import { PRESET_PREFIXES } from "constants";
-import { logBindingUpdate, logUiEvent } from "diagnostics";
 import { PrefixType, RouteCodeDraft } from "types";
 
 const presetPrefixes = new Set<string>(PRESET_PREFIXES);
@@ -38,12 +37,10 @@ export function useRouteCodeDraft(input: string) {
     const [draft, setDraft] = useState<RouteCodeDraft>(() => parseRouteCode(input));
 
     useEffect(() => {
-        logBindingUpdate("route draft synced from backend input", { input });
         setDraft(parseRouteCode(input));
     }, [input]);
 
     const updateDraft = (nextDraft: RouteCodeDraft) => {
-        logUiEvent("route draft updated", { nextDraft, composed: composeRouteCode(nextDraft) });
         setDraft(nextDraft);
         panelActions.setInput(composeRouteCode(nextDraft));
     };

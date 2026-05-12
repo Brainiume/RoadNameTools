@@ -7,7 +7,7 @@ using Game.UI;
 using Game.UI.InGame;
 using Unity.Entities;
 
-namespace RoadSignsTools.Systems
+namespace AdvancedRoadNaming.Systems
 {
     public sealed partial class RoadSelectionInfoSectionSystem : InfoSectionBase
     {
@@ -16,7 +16,7 @@ namespace RoadSignsTools.Systems
 
         public override GameMode gameMode => GameMode.Game;
 
-        protected override string group => nameof(RoadSignsTools);
+        protected override string group => nameof(AdvancedRoadNaming);
 
         protected override void OnCreate()
         {
@@ -51,18 +51,17 @@ namespace RoadSignsTools.Systems
 
         public override void OnWriteProperties(IJsonWriter writer)
         {
-            var segment = selectedEntity;
+            var segment = GetRepresentativeRoadSegment(selectedEntity);
             var roadName = string.Empty;
             var routeNumbers = string.Empty;
-            var hasRoadSignsData = false;
+            var hasAdvancedRoadNamingData = false;
 
-            if (IsRoadSelection(segment))
+            if (segment != Entity.Null)
             {
                 roadName = GetRenderedRoadName(segment);
-                var metadataEntity = GetRepresentativeRoadSegment(segment);
-                if (metadataEntity != Entity.Null && _metadataSystem.Repository.TryGet(metadataEntity, out var metadata))
+                if (_metadataSystem.Repository.TryGet(segment, out var metadata))
                 {
-                    hasRoadSignsData = true;
+                    hasAdvancedRoadNamingData = true;
                     if (!string.IsNullOrWhiteSpace(metadata.OptionalCustomRoadName))
                         roadName = metadata.OptionalCustomRoadName.Trim();
                     routeNumbers = metadata.RouteNumbers.Count > 0
@@ -72,13 +71,13 @@ namespace RoadSignsTools.Systems
             }
 
             writer.PropertyName("segmentIndex");
-            writer.Write(segment.Index);
+            writer.Write(segment != Entity.Null ? segment.Index : selectedEntity.Index);
             writer.PropertyName("roadName");
             writer.Write(roadName ?? string.Empty);
             writer.PropertyName("routeNumbers");
             writer.Write(routeNumbers);
-            writer.PropertyName("hasRoadSignsData");
-            writer.Write(hasRoadSignsData);
+            writer.PropertyName("hasAdvancedRoadNamingData");
+            writer.Write(hasAdvancedRoadNamingData);
         }
 
         private bool IsSelectedRoadSegment()
@@ -88,7 +87,7 @@ namespace RoadSignsTools.Systems
 
         private bool IsRoadSelection(Entity entity)
         {
-            return IsRoadEdge(entity) || IsRoadAggregate(entity);
+            return GetRepresentativeRoadSegment(entity) != Entity.Null;
         }
 
         private bool IsRoadEdge(Entity entity)
@@ -103,6 +102,50 @@ namespace RoadSignsTools.Systems
 
         private bool IsRoadAggregate(Entity entity)
         {
+            return TryGetAggregateRoadSegment(entity, out _);
+        }
+
+        private Entity GetRepresentativeRoadSegment(Entity entity)
+        {
+            return GetRepresentativeRoadSegment(entity, 0);
+        }
+
+        private Entity GetRepresentativeRoadSegment(Entity entity, int depth)
+        {
+            if (IsRoadEdge(entity))
+                return entity;
+
+            if (entity == Entity.Null || !EntityManager.Exists(entity) || depth > 4)
+                return Entity.Null;
+
+            if (TryGetAggregateRoadSegment(entity, out var aggregateRoadSegment))
+                return aggregateRoadSegment;
+
+            if (EntityManager.HasComponent<Aggregated>(entity))
+            {
+                var aggregate = EntityManager.GetComponentData<Aggregated>(entity).m_Aggregate;
+                if (aggregate != Entity.Null && aggregate != entity)
+                {
+                    var aggregatedRoadSegment = GetRepresentativeRoadSegment(aggregate, depth + 1);
+                    if (aggregatedRoadSegment != Entity.Null)
+                        return aggregatedRoadSegment;
+                }
+            }
+
+            if (EntityManager.HasComponent<Owner>(entity))
+            {
+                var owner = EntityManager.GetComponentData<Owner>(entity).m_Owner;
+                if (owner != Entity.Null && owner != entity)
+                    return GetRepresentativeRoadSegment(owner, depth + 1);
+            }
+
+            return Entity.Null;
+        }
+
+        private bool TryGetAggregateRoadSegment(Entity entity, out Entity segment)
+        {
+            segment = Entity.Null;
+
             if (entity == Entity.Null
                 || !EntityManager.Exists(entity)
                 || !EntityManager.HasComponent<Aggregate>(entity)
@@ -113,26 +156,18 @@ namespace RoadSignsTools.Systems
                 return false;
             }
 
-            return GetRepresentativeRoadSegment(entity) != Entity.Null;
-        }
-
-        private Entity GetRepresentativeRoadSegment(Entity entity)
-        {
-            if (IsRoadEdge(entity))
-                return entity;
-
-            if (entity == Entity.Null || !EntityManager.Exists(entity) || !EntityManager.HasBuffer<AggregateElement>(entity))
-                return Entity.Null;
-
             var elements = EntityManager.GetBuffer<AggregateElement>(entity, true);
             for (var i = 0; i < elements.Length; i++)
             {
                 var edge = elements[i].m_Edge;
                 if (IsRoadEdge(edge))
-                    return edge;
+                {
+                    segment = edge;
+                    return true;
+                }
             }
 
-            return Entity.Null;
+            return false;
         }
 
         private string GetRenderedRoadName(Entity segment)

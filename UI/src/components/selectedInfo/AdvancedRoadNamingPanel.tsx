@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useValue } from "cs2/api";
 import { Portal } from "cs2/ui";
 import { DelayedTooltip } from "components/DelayedTooltip";
@@ -8,7 +8,7 @@ import {
     closeAdvancedRoadNamingPanel,
 } from "bindings";
 import { usePanelState } from "hooks/usePanelState";
-import { useRoadSignsLocalization } from "localization";
+import { useAdvancedRoadNamingLocalization } from "localization";
 import {
     closeButtonClass,
     closeButtonImageClass,
@@ -32,7 +32,26 @@ export function AdvancedRoadNamingPanel() {
     const panelKind = useValue(advancedRoadNamingPanelKind$);
     const state = usePanelState();
 
-    if (!visible || !state.inGame || !state.isOpen) {
+    useEffect(() => {
+        if (!visible) {
+            return undefined;
+        }
+
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key !== "Escape" && event.key !== "Esc") {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            closeAdvancedRoadNamingPanel();
+        };
+
+        document.addEventListener("keydown", closeOnEscape, true);
+        return () => document.removeEventListener("keydown", closeOnEscape, true);
+    }, [visible]);
+
+    if (!visible) {
         return null;
     }
 
@@ -47,7 +66,6 @@ export function AdvancedRoadNamingPanel() {
             {isRoutePanel ? (
                 <AdvancedRoadRoutesContent
                     input={state.input}
-                    mode={state.mode}
                     routeNumberPlacement={state.routeNumberPlacement}
                     savedRouteInputs={state.savedRoutes.map((route) => route.input)}
                     canUndo={state.waypointCount > 0}
@@ -68,7 +86,7 @@ export function AdvancedRoadNamingPanel() {
 }
 
 function SelectedInfoAdjacentPanel(props: SelectedInfoAdjacentPanelProps) {
-    const { t } = useRoadSignsLocalization();
+    const { t } = useAdvancedRoadNamingLocalization();
 
     if (!props.visible) {
         return null;
@@ -85,7 +103,7 @@ function SelectedInfoAdjacentPanel(props: SelectedInfoAdjacentPanelProps) {
                         <div className={panelModule.titleBar}>
                             <img className={panelModule.icon} src={props.icon} />
                             <div className={selectedInfoThemeModule.title}>{props.header}</div>
-                            <DelayedTooltip tooltip={t("RoadSignsTools.UI[ClosePanelTooltip]")} direction="left">
+                            <DelayedTooltip tooltip={t("AdvancedRoadNaming.UI[ClosePanelTooltip]")} direction="left">
                                 <button className={closeButtonClass} onClick={closeAdvancedRoadNamingPanel}>
                                     <div
                                         className={closeButtonImageClass}

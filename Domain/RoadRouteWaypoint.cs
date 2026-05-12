@@ -2,7 +2,7 @@ using Colossal.UI.Binding;
 using Unity.Entities;
 using Unity.Mathematics;
 
-namespace RoadSignsTools.Domain
+namespace AdvancedRoadNaming.Domain
 {
     public readonly struct RoadRouteWaypoint : IJsonWritable
     {

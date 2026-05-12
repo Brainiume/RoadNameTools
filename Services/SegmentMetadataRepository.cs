@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using RoadSignsTools.Domain;
+using AdvancedRoadNaming.Domain;
 using Unity.Entities;
 
-namespace RoadSignsTools.Services
+namespace AdvancedRoadNaming.Services
 {
     public sealed class SegmentMetadataRepository
     {

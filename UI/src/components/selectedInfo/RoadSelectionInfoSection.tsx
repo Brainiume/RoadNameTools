@@ -1,24 +1,37 @@
 import { trigger } from "cs2/api";
-import { FocusDisabled } from "cs2/input";
-import { PanelSection, PanelSectionRow } from "cs2/ui";
+import { FOCUS_AUTO, FocusDisabled } from "cs2/input";
+import { getModule } from "cs2/modding";
+import { ButtonProps, PanelSection, PanelSectionRow } from "cs2/ui";
 import { openAdvancedRoadNamingPanel, openAdvancedRoadRoutesPanel } from "bindings";
-import { ICON_SRC, NATIVE_GROUP } from "constants";
-import { VC, VF } from "components/vanilla/Components";
+import { NATIVE_GROUP } from "constants";
+import { useAdvancedRoadNamingLocalization } from "localization";
 import styles from "./roadSelectionInfoSection.module.scss";
+
+interface ToolButtonProps extends ButtonProps {
+    src: string;
+    tooltip?: string;
+}
+
+const ToolButton = getModule(
+    "game-ui/game/components/tool-options/tool-button/tool-button.tsx",
+    "ToolButton",
+) as React.FC<ToolButtonProps>;
 
 interface RoadSelectionInfoSectionProps {
     segmentIndex: number;
     roadName: string;
     routeNumbers: string;
-    hasRoadSignsData: boolean;
+    hasAdvancedRoadNamingData: boolean;
 }
 
 export const extendRoadSelectionInfoSection = (componentList: Record<string, any>) => {
-    componentList["RoadSignsTools.Systems.RoadSelectionInfoSectionSystem"] = RoadSelectionInfoSection;
+    componentList["AdvancedRoadNaming.Systems.RoadSelectionInfoSectionSystem"] = RoadSelectionInfoSection;
     return componentList;
 };
 
 function RoadSelectionInfoSection(props: RoadSelectionInfoSectionProps) {
+    const { t } = useAdvancedRoadNamingLocalization();
+
     const click = (action: "roadName" | "routeNumber") => {
         trigger(NATIVE_GROUP, "SelectedRoadInfoButtonClicked", action);
     };
@@ -33,18 +46,18 @@ function RoadSelectionInfoSection(props: RoadSelectionInfoSectionProps) {
                     right={
                         <FocusDisabled>
                             <div className={styles.headerActions}>
-                                <VC.ToolButton
+                                <ToolButton
                                     id="rst-selected-road-name"
-                                    focusKey={VF.FOCUS_AUTO}
+                                    focusKey={FOCUS_AUTO}
                                     src="coui://rst/PencilEdit.svg"
                                     tooltip="Advanced Road Naming"
                                     onSelect={openAdvancedRoadNamingPanel}
                                 />
-                                <VC.ToolButton
+                                <ToolButton
                                     id="rst-selected-route-number"
-                                    focusKey={VF.FOCUS_AUTO}
+                                    focusKey={FOCUS_AUTO}
                                     src="coui://rst/Route.svg"
-                                    tooltip="Major Route Creation"
+                                    tooltip={t("AdvancedRoadNaming.UI[AdvancedRoadRoutesTooltip]")}
                                     onSelect={() => {
                                         click("routeNumber");
                                         openAdvancedRoadRoutesPanel();
@@ -65,7 +78,7 @@ function RoadSelectionInfoSection(props: RoadSelectionInfoSectionProps) {
                         </span>
                     }
                     right={props.routeNumbers || "No route"}
-                    tooltip={props.hasRoadSignsData ? `This road is apart of the ${props.routeNumbers} route` : "This road is not apart of any routes"}
+                    tooltip={props.hasAdvancedRoadNamingData ? `This road is apart of the ${props.routeNumbers} route` : "This road is not apart of any routes"}
                 />
             </PanelSection>
         </>

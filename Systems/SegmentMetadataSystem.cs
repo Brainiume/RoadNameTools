@@ -7,13 +7,13 @@ using Game.Net;
 using Game.Prefabs;
 using Game.SceneFlow;
 using Game.UI;
-using RoadSignsTools.Components;
-using RoadSignsTools.Domain;
-using RoadSignsTools.Services;
+using AdvancedRoadNaming.Components;
+using AdvancedRoadNaming.Domain;
+using AdvancedRoadNaming.Services;
 using Unity.Collections;
 using Unity.Entities;
 
-namespace RoadSignsTools.Systems
+namespace AdvancedRoadNaming.Systems
 {
     public sealed partial class SegmentMetadataSystem : GameSystemBase, IDefaultSerializable
     {
@@ -39,7 +39,7 @@ namespace RoadSignsTools.Systems
         private EntityQuery _aggregateOwnerQuery;
         private EntityQuery _managedAggregateOwnerQuery;
         private EntityQuery _updatedAggregateOwnerQuery;
-        private EntityQuery _roadSignsAggregateMemberQuery;
+        private EntityQuery _advancedRoadNamingAggregateMemberQuery;
         private readonly List<AggregateSplitStabilityCheck> _aggregateStabilityChecks = new List<AggregateSplitStabilityCheck>();
         private bool _pendingPostLoadNameReapply;
         private int _pendingPostLoadNameReapplyDelayTicks;
@@ -70,9 +70,9 @@ namespace RoadSignsTools.Systems
             _nameSystem = World.GetOrCreateSystemManaged<NameSystem>();
             _aggregatedRoadEdgeQuery = GetEntityQuery(ComponentType.ReadOnly<Edge>(), ComponentType.ReadOnly<Road>(), ComponentType.ReadOnly<Aggregated>());
             _aggregateOwnerQuery = GetEntityQuery(ComponentType.ReadOnly<Aggregate>(), ComponentType.ReadWrite<AggregateElement>());
-            _managedAggregateOwnerQuery = GetEntityQuery(ComponentType.ReadOnly<Aggregate>(), ComponentType.ReadOnly<RoadSignsManagedAggregate>(), ComponentType.ReadWrite<AggregateElement>());
+            _managedAggregateOwnerQuery = GetEntityQuery(ComponentType.ReadOnly<Aggregate>(), ComponentType.ReadOnly<AdvancedRoadNamingManagedAggregate>(), ComponentType.ReadWrite<AggregateElement>());
             _updatedAggregateOwnerQuery = GetEntityQuery(ComponentType.ReadOnly<Aggregate>(), ComponentType.ReadOnly<AggregateElement>(), ComponentType.ReadOnly<Updated>());
-            _roadSignsAggregateMemberQuery = GetEntityQuery(ComponentType.ReadOnly<Edge>(), ComponentType.ReadOnly<Road>(), ComponentType.ReadOnly<RoadSignsAggregateMember>());
+            _advancedRoadNamingAggregateMemberQuery = GetEntityQuery(ComponentType.ReadOnly<Edge>(), ComponentType.ReadOnly<Road>(), ComponentType.ReadOnly<AdvancedRoadNamingAggregateMember>());
             _applyService = new RouteApplyService(_repository, _validation, _resolver, _routeCodeService, GetBaseName, SetSegmentDisplayName, message => Mod.log.Info(message));
             Mod.log.Info("SegmentMetadataSystem created");
         }
@@ -103,16 +103,6 @@ namespace RoadSignsTools.Systems
             var result = _applyService.ApplyRouteNumber(selectedSegments, routeCode, placement, CurrentDisplaySettings(), out message);
             if (result)
                 ApplyAuthoritativeVisibleNames(selectedSegments, "AssignRouteNumber");
-            return result;
-        }
-
-        // Removes route number from the selected segments, 
-        // returning road segments to their orignal base names
-        public bool RemoveRouteNumber(System.Collections.Generic.IReadOnlyList<Entity> selectedSegments, string routeCode, out string message)
-        {
-            var result = _applyService.RemoveRouteNumber(selectedSegments, routeCode, CurrentDisplaySettings(), out message);
-            if (result)
-                ApplyAuthoritativeVisibleNames(selectedSegments, "RemoveRouteNumber");
             return result;
         }
 
@@ -654,18 +644,18 @@ namespace RoadSignsTools.Systems
         // AggregateSystem query is patched to skip these edge tags.
         private void MarkManagedAggregate(Entity aggregate)
         {
-            if (aggregate != Entity.Null && EntityManager.Exists(aggregate) && !EntityManager.HasComponent<RoadSignsManagedAggregate>(aggregate))
-                EntityManager.AddComponent<RoadSignsManagedAggregate>(aggregate);
+            if (aggregate != Entity.Null && EntityManager.Exists(aggregate) && !EntityManager.HasComponent<AdvancedRoadNamingManagedAggregate>(aggregate))
+                EntityManager.AddComponent<AdvancedRoadNamingManagedAggregate>(aggregate);
         }
 
         private void MarkManagedAggregateEdge(Entity edge)
         {
-            if (edge != Entity.Null && EntityManager.Exists(edge) && !EntityManager.HasComponent<RoadSignsAggregateMember>(edge))
-                EntityManager.AddComponent<RoadSignsAggregateMember>(edge);
+            if (edge != Entity.Null && EntityManager.Exists(edge) && !EntityManager.HasComponent<AdvancedRoadNamingAggregateMember>(edge))
+                EntityManager.AddComponent<AdvancedRoadNamingAggregateMember>(edge);
         }
 
         // A tagged edge must not remain in any aggregate buffer except the
-        // RoadSigns-owned aggregate that currently owns it, otherwise vanilla can
+        // Advanced Road Naming-owned aggregate that currently owns it, otherwise vanilla can
         // still reach it indirectly through AggregateElement.
         private void RemoveProtectedEdgesFromUnmanagedAggregateBuffers(List<Entity> protectedEdges, string operation)
         {
@@ -686,7 +676,7 @@ namespace RoadSignsTools.Systems
                     var owner = EntityManager.GetComponentData<Aggregated>(edge).m_Aggregate;
                     if (owner != Entity.Null
                         && EntityManager.Exists(owner)
-                        && EntityManager.HasComponent<RoadSignsManagedAggregate>(owner))
+                        && EntityManager.HasComponent<AdvancedRoadNamingManagedAggregate>(owner))
                     {
                         allowedOwnerByEdge[edge] = owner;
                     }
@@ -728,7 +718,7 @@ namespace RoadSignsTools.Systems
                     {
                         EnsureRefreshTag<Updated>(aggregate);
                         EnsureRefreshTag<BatchesUpdated>(aggregate);
-                        Mod.log.Warn(() => $"Road Naming: removed protected RoadSigns edges from unmanaged aggregate buffer. Operation={operation}, Aggregate={aggregate.Index}, RemovedEdges={removed}.");
+                        Mod.log.Warn(() => $"Road Naming: removed protected Advanced Road Naming edges from unmanaged aggregate buffer. Operation={operation}, Aggregate={aggregate.Index}, RemovedEdges={removed}.");
                     }
                 }
             }
@@ -738,7 +728,7 @@ namespace RoadSignsTools.Systems
             }
         }
 
-        // Builds the authoritative RoadSigns owner map from managed aggregate buffers.
+        // Builds the authoritative Advanced Road Naming owner map from managed aggregate buffers.
         // This is the part vanilla can not safely infer from Aggregated.m_Aggregate after
         // a nearby road update has temporarily pointed a protected edge at a vanilla owner.
         private void AddManagedAggregateBufferOwners(HashSet<Entity> protectedSet, Dictionary<Entity, Entity> allowedOwnerByEdge)
@@ -774,7 +764,7 @@ namespace RoadSignsTools.Systems
             }
         }
 
-        // Restores the reverse edge -> aggregate link to the RoadSigns aggregate before
+        // Restores the reverse edge -> aggregate link to the Advanced Road Naming aggregate before
         // trimming vanilla buffers. Without this, a vanilla aggregate can consume a
         // protected edge and leave the mod aggregate orphaned until the route is reapplied.
         private void RepairProtectedEdgeReverseOwnership(Dictionary<Entity, Entity> allowedOwnerByEdge, string operation)
@@ -818,7 +808,7 @@ namespace RoadSignsTools.Systems
                 EnsureRefreshTag<BatchesUpdated>(edge);
                 EnsureRefreshTag<Updated>(allowedOwner);
                 EnsureRefreshTag<BatchesUpdated>(allowedOwner);
-                Mod.log.Warn(() => $"Road Naming: restored RoadSigns aggregate ownership after vanilla aggregate update. Operation={operation}, Edge={edge.Index}, ManagedAggregate={allowedOwner.Index}.");
+                Mod.log.Warn(() => $"Road Naming: restored Advanced Road Naming aggregate ownership after vanilla aggregate update. Operation={operation}, Edge={edge.Index}, ManagedAggregate={allowedOwner.Index}.");
             }
         }
 
@@ -861,7 +851,7 @@ namespace RoadSignsTools.Systems
                 _protectedAggregateBufferCleanupTicks = 0;
             }
 
-            var protectedEdges = _roadSignsAggregateMemberQuery.ToEntityArray(Allocator.Temp);
+            var protectedEdges = _advancedRoadNamingAggregateMemberQuery.ToEntityArray(Allocator.Temp);
             try
             {
                 if (protectedEdges.Length == 0)
@@ -1586,7 +1576,7 @@ namespace RoadSignsTools.Systems
                 return;
             }
 
-            if (!_routeCodeService.TryNormalize(route.BaseInputValue, out var routeCode, out _))
+            if (route.Mode != RoadRouteToolMode.AssignMajorRouteNumber || !_routeCodeService.TryNormalize(route.BaseInputValue, out var routeCode, out _))
                 return;
 
             for (var i = 0; i < route.OrderedSegmentIds.Count; i++)
@@ -1599,13 +1589,8 @@ namespace RoadSignsTools.Systems
                 if (string.IsNullOrWhiteSpace(metadata.BaseNameSnapshot) && i < route.OriginalStreetNamesSnapshot.Count && !string.IsNullOrWhiteSpace(route.OriginalStreetNamesSnapshot[i]))
                     metadata.BaseNameSnapshot = route.OriginalStreetNamesSnapshot[i].Trim();
 
-                if (route.Mode == RoadRouteToolMode.RemoveMajorRouteNumber)
-                    metadata.RouteNumbers.RemoveAll(existing => string.Equals(existing, routeCode, System.StringComparison.OrdinalIgnoreCase));
-                else
-                {
-                    _routeCodeService.AddRouteCode(new RouteCodeService.SegmentRouteMetadataAdapter(metadata.RouteNumbers), routeCode, settings.AllowMultipleRouteNumbers);
-                    metadata.RouteNumberPlacement = route.RouteNumberPlacement;
-                }
+                _routeCodeService.AddRouteCode(new RouteCodeService.SegmentRouteMetadataAdapter(metadata.RouteNumbers), routeCode, settings.AllowMultipleRouteNumbers);
+                metadata.RouteNumberPlacement = route.RouteNumberPlacement;
 
                 metadata.Touch();
             }

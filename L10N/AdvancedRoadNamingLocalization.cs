@@ -6,15 +6,15 @@ using Colossal;
 using Colossal.Json;
 using Colossal.Localization;
 using Game.SceneFlow;
-using RoadSignsTools.Settings;
+using AdvancedRoadNaming.Settings;
 
-namespace RoadSignsTools.L10N
+namespace AdvancedRoadNaming.L10N
 {
-    public static partial class RoadSignsLocalization
+    public static partial class AdvancedRoadNamingLocalization
     {
         private static readonly Dictionary<string, IDictionarySource> RegisteredSources = new Dictionary<string, IDictionarySource>(StringComparer.OrdinalIgnoreCase);
 
-        public static void Register(Mod mod, RoadSignsToolSettings settings)
+        public static void Register(Mod mod, AdvancedRoadNamingSettings settings)
         {
             if (settings == null)
             {
@@ -109,7 +109,7 @@ namespace RoadSignsTools.L10N
             }
             catch (Exception exception)
             {
-                Mod.log.Warn(exception, () => $"Road Signs Tools localization load failed for '{localePath}'.");
+                Mod.log.Warn(exception, () => $"Advanced Road Naming localization load failed for '{localePath}'.");
                 return false;
             }
         }

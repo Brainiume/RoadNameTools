@@ -5,7 +5,7 @@ type LocaleDictionary = Record<string, string>;
 
 export const UI_KEYS = fallbackLocale as LocaleDictionary;
 
-export function useRoadSignsLocalization() {
+export function useAdvancedRoadNamingLocalization() {
     const { translate } = useLocalization();
 
     const t = (key: string): string => translate(key, UI_KEYS[key] ?? key) ?? UI_KEYS[key] ?? key;

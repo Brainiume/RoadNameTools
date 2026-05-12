@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using Colossal.Mathematics;
 using Game;
-using RoadSignsTools.Domain;
-using RoadSignsTools.Services;
+using AdvancedRoadNaming.Domain;
+using AdvancedRoadNaming.Services;
 using Unity.Entities;
 using Unity.Mathematics;
 
-namespace RoadSignsTools.Systems
+namespace AdvancedRoadNaming.Systems
 {
     public sealed partial class RoadRouteOverlayGeometrySystem : GameSystemBase
     {

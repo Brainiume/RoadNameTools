@@ -2,7 +2,7 @@ using Game.Common;
 using Game.Net;
 using Unity.Entities;
 
-namespace RoadSignsTools.Services
+namespace AdvancedRoadNaming.Services
 {
     public sealed class SegmentValidationService
     {
